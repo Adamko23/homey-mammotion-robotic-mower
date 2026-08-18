@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Battery cycles", "sk": "Cykly batérie" },
+  "icon": "/assets/status-battery-cycle.svg",
+  "min": 0,
+  "decimals": 0,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Cancel command from device control", "sk": "Príkaz zrušiť z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mowing cancellation requested (device control)", "sk": "Zrušenie kosenia vyžiadané (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Mowing cancellation requested (device control)", "sk": "Zrušenie kosenia vyžiadané (ovládanie zariadenia)" }
+}

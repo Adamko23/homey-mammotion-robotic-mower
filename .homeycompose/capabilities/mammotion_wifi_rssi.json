@@ -1,0 +1,13 @@
+{
+  "type": "number",
+  "title": { "en": "Mower Wi-Fi signal", "sk": "Wi-Fi signál kosačky" },
+  "icon": "/assets/status-wifi.svg",
+  "units": "dBm",
+  "min": -120,
+  "max": 0,
+  "decimals": 0,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

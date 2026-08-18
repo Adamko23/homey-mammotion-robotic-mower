@@ -1,0 +1,9 @@
+{
+  "type": "string",
+  "title": { "en": "Current mowing zone", "sk": "Aktuálna zóna kosenia" },
+  "icon": "/assets/status-zone.svg",
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

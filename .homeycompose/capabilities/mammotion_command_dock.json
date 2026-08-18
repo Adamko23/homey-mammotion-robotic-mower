@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Dock command", "sk": "Príkaz návratu" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Return to dock requested from Homey", "sk": "Návrat do stanice vyžiadaný z Homey" },
+  "insightsTitleFalse": { "en": "Return to dock requested from Homey", "sk": "Návrat do stanice vyžiadaný z Homey" }
+}

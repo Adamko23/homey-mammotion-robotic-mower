@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Charging started", "sk": "Nabíjanie spustené" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Charging started (confirmed by mower)", "sk": "Nabíjanie spustené (potvrdené kosačkou)" },
+  "insightsTitleFalse": { "en": "Charging started (confirmed by mower)", "sk": "Nabíjanie spustené (potvrdené kosačkou)" }
+}

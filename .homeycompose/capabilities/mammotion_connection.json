@@ -1,0 +1,14 @@
+{
+  "type": "enum",
+  "title": { "en": "Status connection", "sk": "Spojenie stavov" },
+  "icon": "/assets/status-connection.svg",
+  "values": [
+    { "id": "waiting", "title": { "en": "Waiting for mower", "sk": "Čaká na kosačku" } },
+    { "id": "connected", "title": { "en": "Connected", "sk": "Pripojená" } },
+    { "id": "stale", "title": { "en": "No recent status", "sk": "Chýba aktuálny stav" } }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

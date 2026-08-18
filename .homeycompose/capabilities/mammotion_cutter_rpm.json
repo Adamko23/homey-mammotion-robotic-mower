@@ -1,0 +1,13 @@
+{
+  "type": "number",
+  "title": { "en": "Cutter speed", "sk": "Otáčky nožov" },
+  "icon": "/assets/status-blade.svg",
+  "units": "rpm",
+  "min": 0,
+  "max": 10000,
+  "decimals": 0,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

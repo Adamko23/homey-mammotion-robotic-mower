@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Mower error", "sk": "Chyba kosačky" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mower entered an error state", "sk": "Kosačka prešla do chybového stavu" },
+  "insightsTitleFalse": { "en": "Mower entered an error state", "sk": "Kosačka prešla do chybového stavu" }
+}

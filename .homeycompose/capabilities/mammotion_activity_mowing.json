@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Mowing started", "sk": "Kosenie spustené" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mowing started (confirmed by mower)", "sk": "Kosenie spustené (potvrdené kosačkou)" },
+  "insightsTitleFalse": { "en": "Mowing started (confirmed by mower)", "sk": "Kosenie spustené (potvrdené kosačkou)" }
+}

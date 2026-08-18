@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Pause command from Homey Flow", "sk": "Príkaz pozastaviť z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Pause requested (Homey Flow)", "sk": "Pozastavenie vyžiadané (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Pause requested (Homey Flow)", "sk": "Pozastavenie vyžiadané (Homey Flow)" }
+}

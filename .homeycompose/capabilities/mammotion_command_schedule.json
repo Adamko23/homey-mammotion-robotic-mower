@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Schedule command", "sk": "Príkaz plánu" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mammotion schedule requested from Homey", "sk": "Plán Mammotion vyžiadaný z Homey" },
+  "insightsTitleFalse": { "en": "Mammotion schedule requested from Homey", "sk": "Plán Mammotion vyžiadaný z Homey" }
+}

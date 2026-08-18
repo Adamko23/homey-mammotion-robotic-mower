@@ -1,0 +1,9 @@
+{
+  "type": "string",
+  "title": { "en": "Last Homey command", "sk": "Posledný príkaz z Homey" },
+  "icon": "/assets/status-command.svg",
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

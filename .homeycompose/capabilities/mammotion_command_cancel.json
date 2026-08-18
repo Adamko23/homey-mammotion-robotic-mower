@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Cancel command", "sk": "Príkaz zrušiť" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mowing cancellation requested from Homey", "sk": "Zrušenie kosenia vyžiadané z Homey" },
+  "insightsTitleFalse": { "en": "Mowing cancellation requested from Homey", "sk": "Zrušenie kosenia vyžiadané z Homey" }
+}

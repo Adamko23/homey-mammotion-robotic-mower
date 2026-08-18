@@ -1,0 +1,16 @@
+{
+  "type": "enum",
+  "title": { "en": "Charging status", "sk": "Stav nabíjania" },
+  "icon": "/assets/status-charging.svg",
+  "values": [
+    { "id": "unknown", "title": { "en": "Unknown", "sk": "Neznámy" } },
+    { "id": "not_docked", "title": { "en": "Not docked", "sk": "Mimo stanice" } },
+    { "id": "charging", "title": { "en": "Charging", "sk": "Nabíja sa" } },
+    { "id": "docked_full", "title": { "en": "Docked and full", "sk": "V stanici, nabitá" } },
+    { "id": "docked", "title": { "en": "Docked", "sk": "V stanici" } }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

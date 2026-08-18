@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Start command from Homey Flow", "sk": "Príkaz spustiť z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Start mowing requested (Homey Flow)", "sk": "Spustenie kosenia vyžiadané (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Start mowing requested (Homey Flow)", "sk": "Spustenie kosenia vyžiadané (Homey Flow)" }
+}

@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Start command", "sk": "Príkaz spustiť" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Start mowing requested from Homey", "sk": "Spustenie kosenia vyžiadané z Homey" },
+  "insightsTitleFalse": { "en": "Start mowing requested from Homey", "sk": "Spustenie kosenia vyžiadané z Homey" }
+}

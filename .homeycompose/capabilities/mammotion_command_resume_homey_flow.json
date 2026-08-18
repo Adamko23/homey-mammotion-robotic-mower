@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Resume command from Homey Flow", "sk": "Príkaz pokračovať z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Resume requested (Homey Flow)", "sk": "Pokračovanie vyžiadané (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Resume requested (Homey Flow)", "sk": "Pokračovanie vyžiadané (Homey Flow)" }
+}

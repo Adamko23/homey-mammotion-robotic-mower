@@ -1,0 +1,9 @@
+{
+  "type": "boolean",
+  "title": { "en": "Return to dock", "sk": "Vrátiť do stanice" },
+  "icon": "/assets/action-dock.svg",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "insights": false
+}

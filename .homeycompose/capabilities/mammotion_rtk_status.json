@@ -1,0 +1,17 @@
+{
+  "type": "enum",
+  "title": { "en": "Positioning", "sk": "Určenie polohy" },
+  "icon": "/assets/status-position.svg",
+  "values": [
+    { "id": "unknown", "title": { "en": "Unknown", "sk": "Neznáme" } },
+    { "id": "no_position", "title": { "en": "No position", "sk": "Bez polohy" } },
+    { "id": "rtk_fixed", "title": { "en": "RTK fixed", "sk": "RTK fixná poloha" } },
+    { "id": "rtk_vision", "title": { "en": "RTK with vision", "sk": "RTK s kamerami" } },
+    { "id": "vision", "title": { "en": "Vision positioning", "sk": "Poloha podľa kamier" } },
+    { "id": "degraded", "title": { "en": "Degraded", "sk": "Zhoršená poloha" } }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

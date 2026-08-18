@@ -1,0 +1,13 @@
+{
+  "type": "number",
+  "title": { "en": "Mowing progress", "sk": "Priebeh kosenia" },
+  "icon": "/assets/status-progress.svg",
+  "units": "%",
+  "min": 0,
+  "max": 100,
+  "decimals": 0,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

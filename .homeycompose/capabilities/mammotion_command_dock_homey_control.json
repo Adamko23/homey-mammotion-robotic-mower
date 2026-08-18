@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Dock command from device control", "sk": "Príkaz návratu z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Return to dock requested (device control)", "sk": "Návrat do stanice vyžiadaný (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Return to dock requested (device control)", "sk": "Návrat do stanice vyžiadaný (ovládanie zariadenia)" }
+}

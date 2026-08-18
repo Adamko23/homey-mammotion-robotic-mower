@@ -1,0 +1,149 @@
+{
+  "name": {
+    "en": "Robotic Mower"
+  },
+  "class": "other",
+  "capabilities": [
+    "mammotion_state",
+    "measure_battery",
+    "mammotion_connection",
+    "mammotion_charge_status",
+    "mammotion_progress",
+    "mammotion_current_zone",
+    "mammotion_blade_height",
+    "mammotion_wifi_rssi",
+    "mammotion_rtk_status",
+    "mammotion_rtk_satellites",
+    "mammotion_cutter_rpm",
+    "mammotion_error_code",
+    "mammotion_total_distance",
+    "mammotion_total_work_time",
+    "mammotion_battery_cycles",
+    "mammotion_blade_work_time",
+    "mammotion_firmware",
+    "mammotion_last_command",
+    "mammotion_last_update",
+    "mammotion_pause",
+    "mammotion_resume",
+    "mammotion_cancel",
+    "mammotion_dock",
+    "mammotion_activity_connection",
+    "mammotion_activity_mowing",
+    "mammotion_activity_paused",
+    "mammotion_activity_returning",
+    "mammotion_activity_charging",
+    "mammotion_activity_ready",
+    "mammotion_activity_locked",
+    "mammotion_activity_error",
+    "mammotion_activity_manual",
+    "mammotion_command_start",
+    "mammotion_command_pause",
+    "mammotion_command_resume",
+    "mammotion_command_cancel",
+    "mammotion_command_dock",
+    "mammotion_command_schedule",
+    "mammotion_command_start_homey_control",
+    "mammotion_command_start_homey_flow",
+    "mammotion_command_pause_homey_control",
+    "mammotion_command_pause_homey_flow",
+    "mammotion_command_resume_homey_control",
+    "mammotion_command_resume_homey_flow",
+    "mammotion_command_cancel_homey_control",
+    "mammotion_command_cancel_homey_flow",
+    "mammotion_command_dock_homey_control",
+    "mammotion_command_dock_homey_flow",
+    "mammotion_command_schedule_homey_control",
+    "mammotion_command_schedule_homey_flow"
+  ],
+  "capabilitiesOptions": {
+    "mammotion_pause": { "preventInsights": true, "preventTag": true },
+    "mammotion_resume": { "preventInsights": true, "preventTag": true },
+    "mammotion_cancel": { "preventInsights": true, "preventTag": true },
+    "mammotion_dock": { "preventInsights": true, "preventTag": true },
+    "mammotion_activity_connection": { "preventTag": true },
+    "mammotion_activity_mowing": { "preventTag": true },
+    "mammotion_activity_paused": { "preventTag": true },
+    "mammotion_activity_returning": { "preventTag": true },
+    "mammotion_activity_charging": { "preventTag": true },
+    "mammotion_activity_ready": { "preventTag": true },
+    "mammotion_activity_locked": { "preventTag": true },
+    "mammotion_activity_error": { "preventTag": true },
+    "mammotion_activity_manual": { "preventTag": true },
+    "mammotion_command_start": { "preventTag": true },
+    "mammotion_command_pause": { "preventTag": true },
+    "mammotion_command_resume": { "preventTag": true },
+    "mammotion_command_cancel": { "preventTag": true },
+    "mammotion_command_dock": { "preventTag": true },
+    "mammotion_command_schedule": { "preventTag": true },
+    "mammotion_command_start_homey_control": { "preventTag": true },
+    "mammotion_command_start_homey_flow": { "preventTag": true },
+    "mammotion_command_pause_homey_control": { "preventTag": true },
+    "mammotion_command_pause_homey_flow": { "preventTag": true },
+    "mammotion_command_resume_homey_control": { "preventTag": true },
+    "mammotion_command_resume_homey_flow": { "preventTag": true },
+    "mammotion_command_cancel_homey_control": { "preventTag": true },
+    "mammotion_command_cancel_homey_flow": { "preventTag": true },
+    "mammotion_command_dock_homey_control": { "preventTag": true },
+    "mammotion_command_dock_homey_flow": { "preventTag": true },
+    "mammotion_command_schedule_homey_control": { "preventTag": true },
+    "mammotion_command_schedule_homey_flow": { "preventTag": true }
+  },
+  "platforms": ["local", "cloud"],
+  "connectivity": ["cloud"],
+  "images": {
+    "small": "/drivers/mower/assets/images/small.png",
+    "large": "/drivers/mower/assets/images/large.png",
+    "xlarge": "/drivers/mower/assets/images/xlarge.png"
+  },
+  "pair": [
+    {
+      "id": "login_credentials",
+      "template": "login_credentials",
+      "options": {
+        "title": {
+          "en": "Mammotion account"
+        },
+        "usernameLabel": {
+          "en": "E-mail address"
+        },
+        "usernamePlaceholder": {
+          "en": "name@example.com"
+        },
+        "passwordLabel": {
+          "en": "Password"
+        },
+        "passwordPlaceholder": {
+          "en": "Password"
+        }
+      }
+    },
+    {
+      "id": "list_devices",
+      "template": "list_devices",
+      "navigation": {
+        "next": "add_devices"
+      }
+    },
+    {
+      "id": "add_devices",
+      "template": "add_devices"
+    }
+  ],
+  "repair": [
+    {
+      "id": "login_credentials",
+      "template": "login_credentials",
+      "options": {
+        "title": {
+          "en": "Reconnect Mammotion account"
+        },
+        "usernameLabel": {
+          "en": "E-mail address"
+        },
+        "passwordLabel": {
+          "en": "Password"
+        }
+      }
+    }
+  ]
+}

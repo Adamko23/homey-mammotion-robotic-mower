@@ -1,0 +1,12 @@
+{
+  "type": "number",
+  "title": { "en": "Lifetime work time", "sk": "Celkový čas práce" },
+  "icon": "/assets/status-clock.svg",
+  "units": "h",
+  "min": 0,
+  "decimals": 1,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

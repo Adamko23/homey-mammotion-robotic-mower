@@ -1,0 +1,583 @@
+{
+  "triggers": [
+    {
+      "id": "mower_state_changed",
+      "title": { "en": "Mower state changed", "sk": "Stav kosačky sa zmenil" },
+      "tokens": [
+        { "name": "state", "type": "string", "title": { "en": "New state", "sk": "Nový stav" } },
+        { "name": "previous_state", "type": "string", "title": { "en": "Previous state", "sk": "Predchádzajúci stav" } },
+        { "name": "state_code", "type": "number", "title": { "en": "Mammotion state code", "sk": "Kód stavu Mammotion" } },
+        { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } },
+        { "name": "zone", "type": "string", "title": { "en": "Mowing zone", "sk": "Zóna kosenia" } }
+      ]
+    },
+    {
+      "id": "mowing_started",
+      "title": { "en": "Mowing started", "sk": "Kosenie sa spustilo" },
+      "tokens": [
+        { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } },
+        { "name": "zone", "type": "string", "title": { "en": "Mowing zone", "sk": "Zóna kosenia" } }
+      ]
+    },
+    {
+      "id": "mowing_paused",
+      "title": { "en": "Mowing paused", "sk": "Kosenie sa pozastavilo" },
+      "tokens": [
+        { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } },
+        { "name": "zone", "type": "string", "title": { "en": "Mowing zone", "sk": "Zóna kosenia" } }
+      ]
+    },
+    {
+      "id": "returning_to_dock",
+      "title": { "en": "Mower started returning to dock", "sk": "Kosačka sa začala vracať do stanice" },
+      "tokens": [
+        { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } }
+      ]
+    },
+    {
+      "id": "mowing_stopped",
+      "title": { "en": "Mowing ended", "sk": "Kosenie sa skončilo" },
+      "tokens": [
+        { "name": "state", "type": "string", "title": { "en": "End state", "sk": "Konečný stav" } },
+        { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "id": "start_mowing",
+      "title": {
+        "en": "Start mowing"
+      },
+      "hint": {
+        "en": "Select one known Mammotion zone or All known zones."
+      },
+      "titleFormatted": {
+        "en": "Start mowing [[area_selector]] as [[channel_mode]], height [[blade_height]], speed [[speed]], spacing [[path_spacing]], angle [[cutting_path_angle_mode]], border [[border_laps]], order [[mow_order]], detection [[obstacle_detection]], obstacle laps [[obstacle_laps]]"
+      },
+      "highlight": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "area_selector",
+          "title": {
+            "en": "Mowing zones"
+          },
+          "placeholder": {
+            "en": "Select a zone or All known zones"
+          }
+        },
+        {
+          "type": "dropdown",
+          "name": "channel_mode",
+          "title": {
+            "en": "Mowing pattern"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Single grid"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Double grid"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Segment grid"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "No grid"
+              }
+            }
+          ]
+        },
+        {
+          "type": "number",
+          "name": "blade_height",
+          "title": {
+            "en": "Blade height"
+          },
+          "placeholder": {
+            "en": "50 mm"
+          },
+          "min": 25,
+          "max": 70,
+          "step": 1
+        },
+        {
+          "type": "range",
+          "name": "speed",
+          "title": {
+            "en": "Speed"
+          },
+          "min": 0.2,
+          "max": 0.6,
+          "step": 0.1,
+          "label": "m/s",
+          "labelDecimals": 1
+        },
+        {
+          "type": "number",
+          "name": "path_spacing",
+          "title": {
+            "en": "Path spacing"
+          },
+          "placeholder": {
+            "en": "25 cm"
+          },
+          "min": 20,
+          "max": 35,
+          "step": 1
+        },
+        {
+          "type": "dropdown",
+          "name": "cutting_path_angle_mode",
+          "title": {
+            "en": "Cutting path angle mode"
+          },
+          "values": [
+            {
+              "id": "2",
+              "title": {
+                "en": "Optimal"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Random"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "border_laps",
+          "title": {
+            "en": "Border laps"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "None"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "One"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Two"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "Three"
+              }
+            },
+            {
+              "id": "4",
+              "title": {
+                "en": "Four"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "mow_order",
+          "title": {
+            "en": "Mow order"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Border first"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Grid first"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "obstacle_detection",
+          "title": {
+            "en": "Obstacle detection"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Off"
+              }
+            },
+            {
+              "id": "10",
+              "title": {
+                "en": "Standard"
+              }
+            },
+            {
+              "id": "11",
+              "title": {
+                "en": "Sensitive"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "obstacle_laps",
+          "title": {
+            "en": "Obstacle laps"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "None"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "One"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Two"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "Three"
+              }
+            },
+            {
+              "id": "4",
+              "title": {
+                "en": "Four"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "start_mowing_custom_angle",
+      "title": {
+        "en": "Start mowing with custom angle"
+      },
+      "hint": {
+        "en": "Select one known Mammotion zone or All known zones."
+      },
+      "titleFormatted": {
+        "en": "Start mowing [[area_selector]] as [[channel_mode]], height [[blade_height]], speed [[speed]], spacing [[path_spacing]], custom angle [[cutting_path_angle]], border [[border_laps]], order [[mow_order]], detection [[obstacle_detection]], obstacle laps [[obstacle_laps]]"
+      },
+      "highlight": true,
+      "args": [
+        {
+          "type": "autocomplete",
+          "name": "area_selector",
+          "title": {
+            "en": "Mowing zones"
+          },
+          "placeholder": {
+            "en": "Select a zone or All known zones"
+          }
+        },
+        {
+          "type": "dropdown",
+          "name": "channel_mode",
+          "title": {
+            "en": "Mowing pattern"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Single grid"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Double grid"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Segment grid"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "No grid"
+              }
+            }
+          ]
+        },
+        {
+          "type": "number",
+          "name": "blade_height",
+          "title": {
+            "en": "Blade height"
+          },
+          "placeholder": {
+            "en": "50 mm"
+          },
+          "min": 25,
+          "max": 70,
+          "step": 1
+        },
+        {
+          "type": "range",
+          "name": "speed",
+          "title": {
+            "en": "Speed"
+          },
+          "min": 0.2,
+          "max": 0.6,
+          "step": 0.1,
+          "label": "m/s",
+          "labelDecimals": 1
+        },
+        {
+          "type": "number",
+          "name": "path_spacing",
+          "title": {
+            "en": "Path spacing"
+          },
+          "placeholder": {
+            "en": "25 cm"
+          },
+          "min": 20,
+          "max": 35,
+          "step": 1
+        },
+        {
+          "type": "number",
+          "name": "cutting_path_angle",
+          "title": {
+            "en": "Cutting path angle"
+          },
+          "placeholder": {
+            "en": "0 deg"
+          },
+          "min": -180,
+          "max": 180,
+          "step": 1
+        },
+        {
+          "type": "dropdown",
+          "name": "border_laps",
+          "title": {
+            "en": "Border laps"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "None"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "One"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Two"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "Three"
+              }
+            },
+            {
+              "id": "4",
+              "title": {
+                "en": "Four"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "mow_order",
+          "title": {
+            "en": "Mow order"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Border first"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "Grid first"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "obstacle_detection",
+          "title": {
+            "en": "Obstacle detection"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "Off"
+              }
+            },
+            {
+              "id": "10",
+              "title": {
+                "en": "Standard"
+              }
+            },
+            {
+              "id": "11",
+              "title": {
+                "en": "Sensitive"
+              }
+            }
+          ]
+        },
+        {
+          "type": "dropdown",
+          "name": "obstacle_laps",
+          "title": {
+            "en": "Obstacle laps"
+          },
+          "values": [
+            {
+              "id": "0",
+              "title": {
+                "en": "None"
+              }
+            },
+            {
+              "id": "1",
+              "title": {
+                "en": "One"
+              }
+            },
+            {
+              "id": "2",
+              "title": {
+                "en": "Two"
+              }
+            },
+            {
+              "id": "3",
+              "title": {
+                "en": "Three"
+              }
+            },
+            {
+              "id": "4",
+              "title": {
+                "en": "Four"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "refresh_zones",
+      "title": {
+        "en": "Refresh mower zones"
+      },
+      "hint": {
+        "en": "Requests zone names and area hash IDs from Mammotion."
+      }
+    },
+    {
+      "id": "pause_mowing",
+      "title": {
+        "en": "Pause mowing"
+      }
+    },
+    {
+      "id": "resume_mowing",
+      "title": {
+        "en": "Resume mowing"
+      }
+    },
+    {
+      "id": "cancel_mowing",
+      "title": {
+        "en": "Cancel mowing"
+      }
+    },
+    {
+      "id": "return_to_dock",
+      "title": {
+        "en": "Return to dock"
+      }
+    },
+    {
+      "id": "run_schedule",
+      "title": {
+        "en": "Run schedule by ID"
+      },
+      "hint": {
+        "en": "Advanced: requires a Mammotion schedule plan ID. Automatic schedule discovery is not implemented yet."
+      },
+      "titleFormatted": {
+        "en": "Run schedule [[plan_id]]"
+      },
+      "args": [
+        {
+          "type": "text",
+          "name": "plan_id",
+          "title": {
+            "en": "Plan ID"
+          },
+          "placeholder": {
+            "en": "Mammotion schedule plan ID"
+          }
+        }
+      ]
+    }
+  ]
+}

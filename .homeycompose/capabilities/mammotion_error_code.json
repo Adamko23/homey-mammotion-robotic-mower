@@ -1,0 +1,10 @@
+{
+  "type": "number",
+  "title": { "en": "Mower error code", "sk": "Kód chyby kosačky" },
+  "icon": "/assets/status-warning.svg",
+  "decimals": 0,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

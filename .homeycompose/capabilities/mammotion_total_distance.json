@@ -1,0 +1,12 @@
+{
+  "type": "number",
+  "title": { "en": "Lifetime distance", "sk": "Celková prejdená vzdialenosť" },
+  "icon": "/assets/status-route.svg",
+  "units": "km",
+  "min": 0,
+  "decimals": 2,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

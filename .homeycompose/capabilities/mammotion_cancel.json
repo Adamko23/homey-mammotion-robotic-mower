@@ -1,0 +1,9 @@
+{
+  "type": "boolean",
+  "title": { "en": "Cancel mowing", "sk": "Zrušiť kosenie" },
+  "icon": "/assets/action-cancel.svg",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "insights": false
+}

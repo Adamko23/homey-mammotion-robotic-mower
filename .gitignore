@@ -1,0 +1,7 @@
+.homeybuild/
+.npm-cache/
+.playwright-mcp/
+env.json
+node_modules/
+npm-debug.log*
+AGENTS.md

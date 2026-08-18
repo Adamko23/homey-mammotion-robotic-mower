@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Resume command from device control", "sk": "Príkaz pokračovať z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Resume requested (device control)", "sk": "Pokračovanie vyžiadané (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Resume requested (device control)", "sk": "Pokračovanie vyžiadané (ovládanie zariadenia)" }
+}

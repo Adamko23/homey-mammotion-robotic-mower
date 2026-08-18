@@ -1,0 +1,9 @@
+{
+  "type": "string",
+  "title": { "en": "Last mower status", "sk": "Posledný stav kosačky" },
+  "icon": "/assets/status-history.svg",
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

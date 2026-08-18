@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Resume command", "sk": "Príkaz pokračovať" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Resume requested from Homey", "sk": "Pokračovanie vyžiadané z Homey" },
+  "insightsTitleFalse": { "en": "Resume requested from Homey", "sk": "Pokračovanie vyžiadané z Homey" }
+}

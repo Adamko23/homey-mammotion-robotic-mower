@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Returning to dock", "sk": "Návrat do stanice" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Returning to dock (confirmed by mower)", "sk": "Návrat do stanice (potvrdený kosačkou)" },
+  "insightsTitleFalse": { "en": "Returning to dock (confirmed by mower)", "sk": "Návrat do stanice (potvrdený kosačkou)" }
+}

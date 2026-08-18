@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Cancel command from Homey Flow", "sk": "Príkaz zrušiť z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mowing cancellation requested (Homey Flow)", "sk": "Zrušenie kosenia vyžiadané (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Mowing cancellation requested (Homey Flow)", "sk": "Zrušenie kosenia vyžiadané (Homey Flow)" }
+}

@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Pause command", "sk": "Príkaz pozastaviť" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Pause requested from Homey", "sk": "Pozastavenie vyžiadané z Homey" },
+  "insightsTitleFalse": { "en": "Pause requested from Homey", "sk": "Pozastavenie vyžiadané z Homey" }
+}

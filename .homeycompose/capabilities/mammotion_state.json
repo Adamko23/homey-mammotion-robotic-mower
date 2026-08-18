@@ -1,0 +1,27 @@
+{
+  "type": "enum",
+  "title": { "en": "Mower state", "sk": "Stav kosačky" },
+  "icon": "/assets/status-mower.svg",
+  "values": [
+    { "id": "unknown", "title": { "en": "Unknown", "sk": "Neznámy" } },
+    { "id": "ready", "title": { "en": "Ready", "sk": "Pripravená" } },
+    { "id": "mowing", "title": { "en": "Mowing", "sk": "Kosí" } },
+    { "id": "returning", "title": { "en": "Returning to dock", "sk": "Vracia sa do stanice" } },
+    { "id": "charging", "title": { "en": "Charging", "sk": "Nabíja sa" } },
+    { "id": "paused", "title": { "en": "Paused", "sk": "Pozastavená" } },
+    { "id": "locked", "title": { "en": "Locked", "sk": "Uzamknutá" } },
+    { "id": "manual", "title": { "en": "Manual mowing", "sk": "Ručné kosenie" } },
+    { "id": "initializing", "title": { "en": "Initializing", "sk": "Inicializuje sa" } },
+    { "id": "updating", "title": { "en": "Updating", "sk": "Aktualizuje sa" } },
+    { "id": "disabled", "title": { "en": "Disabled", "sk": "Vypnutá" } },
+    { "id": "offline", "title": { "en": "Offline", "sk": "Offline" } },
+    { "id": "powered_off", "title": { "en": "Powered off", "sk": "Vypnutá" } },
+    { "id": "location_error", "title": { "en": "Positioning error", "sk": "Chyba polohy" } },
+    { "id": "editing", "title": { "en": "Map editing", "sk": "Úprava mapy" } },
+    { "id": "error", "title": { "en": "Error", "sk": "Chyba" } }
+  ],
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

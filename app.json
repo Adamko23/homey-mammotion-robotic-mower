@@ -1,0 +1,2055 @@
+{
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
+  "id": "com.mammotion.roboticmower",
+  "version": "1.3.1",
+  "compatibility": ">=5.0.0",
+  "runtime": "nodejs",
+  "platforms": [
+    "local",
+    "cloud"
+  ],
+  "sdk": 3,
+  "brandColor": "#276749",
+  "name": {
+    "en": "Mammotion"
+  },
+  "description": {
+    "en": "Adds support for Mammotion robotic lawn mowers."
+  },
+  "category": "appliances",
+  "tags": {
+    "en": [
+      "Mammotion",
+      "Luba",
+      "Yuka",
+      "robot mower"
+    ]
+  },
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": {
+    "name": "Adam Kollar"
+  },
+  "permissions": [],
+  "flow": {
+    "triggers": [
+      {
+        "id": "mower_state_changed",
+        "title": {
+          "en": "Mower state changed",
+          "sk": "Stav kosačky sa zmenil"
+        },
+        "tokens": [
+          {
+            "name": "state",
+            "type": "string",
+            "title": {
+              "en": "New state",
+              "sk": "Nový stav"
+            }
+          },
+          {
+            "name": "previous_state",
+            "type": "string",
+            "title": {
+              "en": "Previous state",
+              "sk": "Predchádzajúci stav"
+            }
+          },
+          {
+            "name": "state_code",
+            "type": "number",
+            "title": {
+              "en": "Mammotion state code",
+              "sk": "Kód stavu Mammotion"
+            }
+          },
+          {
+            "name": "battery",
+            "type": "number",
+            "title": {
+              "en": "Battery",
+              "sk": "Batéria"
+            }
+          },
+          {
+            "name": "zone",
+            "type": "string",
+            "title": {
+              "en": "Mowing zone",
+              "sk": "Zóna kosenia"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "mowing_started",
+        "title": {
+          "en": "Mowing started",
+          "sk": "Kosenie sa spustilo"
+        },
+        "tokens": [
+          {
+            "name": "battery",
+            "type": "number",
+            "title": {
+              "en": "Battery",
+              "sk": "Batéria"
+            }
+          },
+          {
+            "name": "zone",
+            "type": "string",
+            "title": {
+              "en": "Mowing zone",
+              "sk": "Zóna kosenia"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "mowing_paused",
+        "title": {
+          "en": "Mowing paused",
+          "sk": "Kosenie sa pozastavilo"
+        },
+        "tokens": [
+          {
+            "name": "battery",
+            "type": "number",
+            "title": {
+              "en": "Battery",
+              "sk": "Batéria"
+            }
+          },
+          {
+            "name": "zone",
+            "type": "string",
+            "title": {
+              "en": "Mowing zone",
+              "sk": "Zóna kosenia"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "returning_to_dock",
+        "title": {
+          "en": "Mower started returning to dock",
+          "sk": "Kosačka sa začala vracať do stanice"
+        },
+        "tokens": [
+          {
+            "name": "battery",
+            "type": "number",
+            "title": {
+              "en": "Battery",
+              "sk": "Batéria"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "mowing_stopped",
+        "title": {
+          "en": "Mowing ended",
+          "sk": "Kosenie sa skončilo"
+        },
+        "tokens": [
+          {
+            "name": "state",
+            "type": "string",
+            "title": {
+              "en": "End state",
+              "sk": "Konečný stav"
+            }
+          },
+          {
+            "name": "battery",
+            "type": "number",
+            "title": {
+              "en": "Battery",
+              "sk": "Batéria"
+            }
+          }
+        ],
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      }
+    ],
+    "actions": [
+      {
+        "id": "start_mowing",
+        "title": {
+          "en": "Start mowing"
+        },
+        "hint": {
+          "en": "Select one known Mammotion zone or All known zones."
+        },
+        "titleFormatted": {
+          "en": "Start mowing [[area_selector]] as [[channel_mode]], height [[blade_height]], speed [[speed]], spacing [[path_spacing]], angle [[cutting_path_angle_mode]], border [[border_laps]], order [[mow_order]], detection [[obstacle_detection]], obstacle laps [[obstacle_laps]]"
+        },
+        "highlight": true,
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          },
+          {
+            "type": "autocomplete",
+            "name": "area_selector",
+            "title": {
+              "en": "Mowing zones"
+            },
+            "placeholder": {
+              "en": "Select a zone or All known zones"
+            }
+          },
+          {
+            "type": "dropdown",
+            "name": "channel_mode",
+            "title": {
+              "en": "Mowing pattern"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Single grid"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Double grid"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Segment grid"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "No grid"
+                }
+              }
+            ]
+          },
+          {
+            "type": "number",
+            "name": "blade_height",
+            "title": {
+              "en": "Blade height"
+            },
+            "placeholder": {
+              "en": "50 mm"
+            },
+            "min": 25,
+            "max": 70,
+            "step": 1
+          },
+          {
+            "type": "range",
+            "name": "speed",
+            "title": {
+              "en": "Speed"
+            },
+            "min": 0.2,
+            "max": 0.6,
+            "step": 0.1,
+            "label": "m/s",
+            "labelDecimals": 1
+          },
+          {
+            "type": "number",
+            "name": "path_spacing",
+            "title": {
+              "en": "Path spacing"
+            },
+            "placeholder": {
+              "en": "25 cm"
+            },
+            "min": 20,
+            "max": 35,
+            "step": 1
+          },
+          {
+            "type": "dropdown",
+            "name": "cutting_path_angle_mode",
+            "title": {
+              "en": "Cutting path angle mode"
+            },
+            "values": [
+              {
+                "id": "2",
+                "title": {
+                  "en": "Optimal"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Random"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "border_laps",
+            "title": {
+              "en": "Border laps"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "None"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "One"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Two"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "Three"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "Four"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "mow_order",
+            "title": {
+              "en": "Mow order"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Border first"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Grid first"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "obstacle_detection",
+            "title": {
+              "en": "Obstacle detection"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Off"
+                }
+              },
+              {
+                "id": "10",
+                "title": {
+                  "en": "Standard"
+                }
+              },
+              {
+                "id": "11",
+                "title": {
+                  "en": "Sensitive"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "obstacle_laps",
+            "title": {
+              "en": "Obstacle laps"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "None"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "One"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Two"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "Three"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "Four"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "start_mowing_custom_angle",
+        "title": {
+          "en": "Start mowing with custom angle"
+        },
+        "hint": {
+          "en": "Select one known Mammotion zone or All known zones."
+        },
+        "titleFormatted": {
+          "en": "Start mowing [[area_selector]] as [[channel_mode]], height [[blade_height]], speed [[speed]], spacing [[path_spacing]], custom angle [[cutting_path_angle]], border [[border_laps]], order [[mow_order]], detection [[obstacle_detection]], obstacle laps [[obstacle_laps]]"
+        },
+        "highlight": true,
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          },
+          {
+            "type": "autocomplete",
+            "name": "area_selector",
+            "title": {
+              "en": "Mowing zones"
+            },
+            "placeholder": {
+              "en": "Select a zone or All known zones"
+            }
+          },
+          {
+            "type": "dropdown",
+            "name": "channel_mode",
+            "title": {
+              "en": "Mowing pattern"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Single grid"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Double grid"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Segment grid"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "No grid"
+                }
+              }
+            ]
+          },
+          {
+            "type": "number",
+            "name": "blade_height",
+            "title": {
+              "en": "Blade height"
+            },
+            "placeholder": {
+              "en": "50 mm"
+            },
+            "min": 25,
+            "max": 70,
+            "step": 1
+          },
+          {
+            "type": "range",
+            "name": "speed",
+            "title": {
+              "en": "Speed"
+            },
+            "min": 0.2,
+            "max": 0.6,
+            "step": 0.1,
+            "label": "m/s",
+            "labelDecimals": 1
+          },
+          {
+            "type": "number",
+            "name": "path_spacing",
+            "title": {
+              "en": "Path spacing"
+            },
+            "placeholder": {
+              "en": "25 cm"
+            },
+            "min": 20,
+            "max": 35,
+            "step": 1
+          },
+          {
+            "type": "number",
+            "name": "cutting_path_angle",
+            "title": {
+              "en": "Cutting path angle"
+            },
+            "placeholder": {
+              "en": "0 deg"
+            },
+            "min": -180,
+            "max": 180,
+            "step": 1
+          },
+          {
+            "type": "dropdown",
+            "name": "border_laps",
+            "title": {
+              "en": "Border laps"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "None"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "One"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Two"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "Three"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "Four"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "mow_order",
+            "title": {
+              "en": "Mow order"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Border first"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "Grid first"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "obstacle_detection",
+            "title": {
+              "en": "Obstacle detection"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "Off"
+                }
+              },
+              {
+                "id": "10",
+                "title": {
+                  "en": "Standard"
+                }
+              },
+              {
+                "id": "11",
+                "title": {
+                  "en": "Sensitive"
+                }
+              }
+            ]
+          },
+          {
+            "type": "dropdown",
+            "name": "obstacle_laps",
+            "title": {
+              "en": "Obstacle laps"
+            },
+            "values": [
+              {
+                "id": "0",
+                "title": {
+                  "en": "None"
+                }
+              },
+              {
+                "id": "1",
+                "title": {
+                  "en": "One"
+                }
+              },
+              {
+                "id": "2",
+                "title": {
+                  "en": "Two"
+                }
+              },
+              {
+                "id": "3",
+                "title": {
+                  "en": "Three"
+                }
+              },
+              {
+                "id": "4",
+                "title": {
+                  "en": "Four"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "refresh_zones",
+        "title": {
+          "en": "Refresh mower zones"
+        },
+        "hint": {
+          "en": "Requests zone names and area hash IDs from Mammotion."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "pause_mowing",
+        "title": {
+          "en": "Pause mowing"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "resume_mowing",
+        "title": {
+          "en": "Resume mowing"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "cancel_mowing",
+        "title": {
+          "en": "Cancel mowing"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "return_to_dock",
+        "title": {
+          "en": "Return to dock"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          }
+        ]
+      },
+      {
+        "id": "run_schedule",
+        "title": {
+          "en": "Run schedule by ID"
+        },
+        "hint": {
+          "en": "Advanced: requires a Mammotion schedule plan ID. Automatic schedule discovery is not implemented yet."
+        },
+        "titleFormatted": {
+          "en": "Run schedule [[plan_id]]"
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=mower"
+          },
+          {
+            "type": "text",
+            "name": "plan_id",
+            "title": {
+              "en": "Plan ID"
+            },
+            "placeholder": {
+              "en": "Mammotion schedule plan ID"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "Robotic Mower"
+      },
+      "class": "other",
+      "capabilities": [
+        "mammotion_state",
+        "measure_battery",
+        "mammotion_connection",
+        "mammotion_charge_status",
+        "mammotion_progress",
+        "mammotion_current_zone",
+        "mammotion_blade_height",
+        "mammotion_wifi_rssi",
+        "mammotion_rtk_status",
+        "mammotion_rtk_satellites",
+        "mammotion_cutter_rpm",
+        "mammotion_error_code",
+        "mammotion_total_distance",
+        "mammotion_total_work_time",
+        "mammotion_battery_cycles",
+        "mammotion_blade_work_time",
+        "mammotion_firmware",
+        "mammotion_last_command",
+        "mammotion_last_update",
+        "mammotion_pause",
+        "mammotion_resume",
+        "mammotion_cancel",
+        "mammotion_dock",
+        "mammotion_activity_connection",
+        "mammotion_activity_mowing",
+        "mammotion_activity_paused",
+        "mammotion_activity_returning",
+        "mammotion_activity_charging",
+        "mammotion_activity_ready",
+        "mammotion_activity_locked",
+        "mammotion_activity_error",
+        "mammotion_activity_manual",
+        "mammotion_command_start",
+        "mammotion_command_pause",
+        "mammotion_command_resume",
+        "mammotion_command_cancel",
+        "mammotion_command_dock",
+        "mammotion_command_schedule",
+        "mammotion_command_start_homey_control",
+        "mammotion_command_start_homey_flow",
+        "mammotion_command_pause_homey_control",
+        "mammotion_command_pause_homey_flow",
+        "mammotion_command_resume_homey_control",
+        "mammotion_command_resume_homey_flow",
+        "mammotion_command_cancel_homey_control",
+        "mammotion_command_cancel_homey_flow",
+        "mammotion_command_dock_homey_control",
+        "mammotion_command_dock_homey_flow",
+        "mammotion_command_schedule_homey_control",
+        "mammotion_command_schedule_homey_flow"
+      ],
+      "capabilitiesOptions": {
+        "mammotion_pause": {
+          "preventInsights": true,
+          "preventTag": true
+        },
+        "mammotion_resume": {
+          "preventInsights": true,
+          "preventTag": true
+        },
+        "mammotion_cancel": {
+          "preventInsights": true,
+          "preventTag": true
+        },
+        "mammotion_dock": {
+          "preventInsights": true,
+          "preventTag": true
+        },
+        "mammotion_activity_connection": {
+          "preventTag": true
+        },
+        "mammotion_activity_mowing": {
+          "preventTag": true
+        },
+        "mammotion_activity_paused": {
+          "preventTag": true
+        },
+        "mammotion_activity_returning": {
+          "preventTag": true
+        },
+        "mammotion_activity_charging": {
+          "preventTag": true
+        },
+        "mammotion_activity_ready": {
+          "preventTag": true
+        },
+        "mammotion_activity_locked": {
+          "preventTag": true
+        },
+        "mammotion_activity_error": {
+          "preventTag": true
+        },
+        "mammotion_activity_manual": {
+          "preventTag": true
+        },
+        "mammotion_command_start": {
+          "preventTag": true
+        },
+        "mammotion_command_pause": {
+          "preventTag": true
+        },
+        "mammotion_command_resume": {
+          "preventTag": true
+        },
+        "mammotion_command_cancel": {
+          "preventTag": true
+        },
+        "mammotion_command_dock": {
+          "preventTag": true
+        },
+        "mammotion_command_schedule": {
+          "preventTag": true
+        },
+        "mammotion_command_start_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_start_homey_flow": {
+          "preventTag": true
+        },
+        "mammotion_command_pause_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_pause_homey_flow": {
+          "preventTag": true
+        },
+        "mammotion_command_resume_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_resume_homey_flow": {
+          "preventTag": true
+        },
+        "mammotion_command_cancel_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_cancel_homey_flow": {
+          "preventTag": true
+        },
+        "mammotion_command_dock_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_dock_homey_flow": {
+          "preventTag": true
+        },
+        "mammotion_command_schedule_homey_control": {
+          "preventTag": true
+        },
+        "mammotion_command_schedule_homey_flow": {
+          "preventTag": true
+        }
+      },
+      "platforms": [
+        "local",
+        "cloud"
+      ],
+      "connectivity": [
+        "cloud"
+      ],
+      "images": {
+        "small": "/drivers/mower/assets/images/small.png",
+        "large": "/drivers/mower/assets/images/large.png",
+        "xlarge": "/drivers/mower/assets/images/xlarge.png"
+      },
+      "pair": [
+        {
+          "id": "login_credentials",
+          "template": "login_credentials",
+          "options": {
+            "title": {
+              "en": "Mammotion account"
+            },
+            "usernameLabel": {
+              "en": "E-mail address"
+            },
+            "usernamePlaceholder": {
+              "en": "name@example.com"
+            },
+            "passwordLabel": {
+              "en": "Password"
+            },
+            "passwordPlaceholder": {
+              "en": "Password"
+            }
+          }
+        },
+        {
+          "id": "list_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
+      "repair": [
+        {
+          "id": "login_credentials",
+          "template": "login_credentials",
+          "options": {
+            "title": {
+              "en": "Reconnect Mammotion account"
+            },
+            "usernameLabel": {
+              "en": "E-mail address"
+            },
+            "passwordLabel": {
+              "en": "Password"
+            }
+          }
+        }
+      ],
+      "id": "mower"
+    }
+  ],
+  "capabilities": {
+    "mammotion_activity_charging": {
+      "type": "boolean",
+      "title": {
+        "en": "Charging started",
+        "sk": "Nabíjanie spustené"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Charging started (confirmed by mower)",
+        "sk": "Nabíjanie spustené (potvrdené kosačkou)"
+      },
+      "insightsTitleFalse": {
+        "en": "Charging started (confirmed by mower)",
+        "sk": "Nabíjanie spustené (potvrdené kosačkou)"
+      }
+    },
+    "mammotion_activity_connection": {
+      "type": "boolean",
+      "title": {
+        "en": "Mower status connection",
+        "sk": "Spojenie so stavmi kosačky"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mower status connection restored",
+        "sk": "Spojenie so stavmi kosačky obnovené"
+      },
+      "insightsTitleFalse": {
+        "en": "Mower status connection lost",
+        "sk": "Spojenie so stavmi kosačky prerušené"
+      }
+    },
+    "mammotion_activity_error": {
+      "type": "boolean",
+      "title": {
+        "en": "Mower error",
+        "sk": "Chyba kosačky"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mower entered an error state",
+        "sk": "Kosačka prešla do chybového stavu"
+      },
+      "insightsTitleFalse": {
+        "en": "Mower entered an error state",
+        "sk": "Kosačka prešla do chybového stavu"
+      }
+    },
+    "mammotion_activity_locked": {
+      "type": "boolean",
+      "title": {
+        "en": "Mower locked",
+        "sk": "Kosačka uzamknutá"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mower locked",
+        "sk": "Kosačka uzamknutá"
+      },
+      "insightsTitleFalse": {
+        "en": "Mower locked",
+        "sk": "Kosačka uzamknutá"
+      }
+    },
+    "mammotion_activity_manual": {
+      "type": "boolean",
+      "title": {
+        "en": "Manual mowing",
+        "sk": "Ručné kosenie"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Manual mowing started",
+        "sk": "Ručné kosenie spustené"
+      },
+      "insightsTitleFalse": {
+        "en": "Manual mowing started",
+        "sk": "Ručné kosenie spustené"
+      }
+    },
+    "mammotion_activity_mowing": {
+      "type": "boolean",
+      "title": {
+        "en": "Mowing started",
+        "sk": "Kosenie spustené"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mowing started (confirmed by mower)",
+        "sk": "Kosenie spustené (potvrdené kosačkou)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mowing started (confirmed by mower)",
+        "sk": "Kosenie spustené (potvrdené kosačkou)"
+      }
+    },
+    "mammotion_activity_paused": {
+      "type": "boolean",
+      "title": {
+        "en": "Mowing paused",
+        "sk": "Kosenie pozastavené"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mowing paused (confirmed by mower)",
+        "sk": "Kosenie pozastavené (potvrdené kosačkou)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mowing paused (confirmed by mower)",
+        "sk": "Kosenie pozastavené (potvrdené kosačkou)"
+      }
+    },
+    "mammotion_activity_ready": {
+      "type": "boolean",
+      "title": {
+        "en": "Mower ready",
+        "sk": "Kosačka pripravená"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mower ready / task ended",
+        "sk": "Kosačka pripravená / úloha skončila"
+      },
+      "insightsTitleFalse": {
+        "en": "Mower ready / task ended",
+        "sk": "Kosačka pripravená / úloha skončila"
+      }
+    },
+    "mammotion_activity_returning": {
+      "type": "boolean",
+      "title": {
+        "en": "Returning to dock",
+        "sk": "Návrat do stanice"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Returning to dock (confirmed by mower)",
+        "sk": "Návrat do stanice (potvrdený kosačkou)"
+      },
+      "insightsTitleFalse": {
+        "en": "Returning to dock (confirmed by mower)",
+        "sk": "Návrat do stanice (potvrdený kosačkou)"
+      }
+    },
+    "mammotion_battery_cycles": {
+      "type": "number",
+      "title": {
+        "en": "Battery cycles",
+        "sk": "Cykly batérie"
+      },
+      "icon": "/assets/status-battery-cycle.svg",
+      "min": 0,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_blade_height": {
+      "type": "number",
+      "title": {
+        "en": "Blade height",
+        "sk": "Výška noža"
+      },
+      "icon": "/assets/status-blade-height.svg",
+      "units": "mm",
+      "min": 0,
+      "max": 100,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_blade_work_time": {
+      "type": "number",
+      "title": {
+        "en": "Blade work time",
+        "sk": "Čas práce nožov"
+      },
+      "icon": "/assets/status-blade-time.svg",
+      "units": "h",
+      "min": 0,
+      "decimals": 1,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_cancel": {
+      "type": "boolean",
+      "title": {
+        "en": "Cancel mowing",
+        "sk": "Zrušiť kosenie"
+      },
+      "icon": "/assets/action-cancel.svg",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "insights": false
+    },
+    "mammotion_charge_status": {
+      "type": "enum",
+      "title": {
+        "en": "Charging status",
+        "sk": "Stav nabíjania"
+      },
+      "icon": "/assets/status-charging.svg",
+      "values": [
+        {
+          "id": "unknown",
+          "title": {
+            "en": "Unknown",
+            "sk": "Neznámy"
+          }
+        },
+        {
+          "id": "not_docked",
+          "title": {
+            "en": "Not docked",
+            "sk": "Mimo stanice"
+          }
+        },
+        {
+          "id": "charging",
+          "title": {
+            "en": "Charging",
+            "sk": "Nabíja sa"
+          }
+        },
+        {
+          "id": "docked_full",
+          "title": {
+            "en": "Docked and full",
+            "sk": "V stanici, nabitá"
+          }
+        },
+        {
+          "id": "docked",
+          "title": {
+            "en": "Docked",
+            "sk": "V stanici"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_command_cancel": {
+      "type": "boolean",
+      "title": {
+        "en": "Cancel command",
+        "sk": "Príkaz zrušiť"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mowing cancellation requested from Homey",
+        "sk": "Zrušenie kosenia vyžiadané z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Mowing cancellation requested from Homey",
+        "sk": "Zrušenie kosenia vyžiadané z Homey"
+      }
+    },
+    "mammotion_command_cancel_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Cancel command from device control",
+        "sk": "Príkaz zrušiť z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mowing cancellation requested (device control)",
+        "sk": "Zrušenie kosenia vyžiadané (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mowing cancellation requested (device control)",
+        "sk": "Zrušenie kosenia vyžiadané (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_cancel_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Cancel command from Homey Flow",
+        "sk": "Príkaz zrušiť z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mowing cancellation requested (Homey Flow)",
+        "sk": "Zrušenie kosenia vyžiadané (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mowing cancellation requested (Homey Flow)",
+        "sk": "Zrušenie kosenia vyžiadané (Homey Flow)"
+      }
+    },
+    "mammotion_command_dock": {
+      "type": "boolean",
+      "title": {
+        "en": "Dock command",
+        "sk": "Príkaz návratu"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Return to dock requested from Homey",
+        "sk": "Návrat do stanice vyžiadaný z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Return to dock requested from Homey",
+        "sk": "Návrat do stanice vyžiadaný z Homey"
+      }
+    },
+    "mammotion_command_dock_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Dock command from device control",
+        "sk": "Príkaz návratu z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Return to dock requested (device control)",
+        "sk": "Návrat do stanice vyžiadaný (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Return to dock requested (device control)",
+        "sk": "Návrat do stanice vyžiadaný (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_dock_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Dock command from Homey Flow",
+        "sk": "Príkaz návratu z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Return to dock requested (Homey Flow)",
+        "sk": "Návrat do stanice vyžiadaný (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Return to dock requested (Homey Flow)",
+        "sk": "Návrat do stanice vyžiadaný (Homey Flow)"
+      }
+    },
+    "mammotion_command_pause": {
+      "type": "boolean",
+      "title": {
+        "en": "Pause command",
+        "sk": "Príkaz pozastaviť"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Pause requested from Homey",
+        "sk": "Pozastavenie vyžiadané z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Pause requested from Homey",
+        "sk": "Pozastavenie vyžiadané z Homey"
+      }
+    },
+    "mammotion_command_pause_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Pause command from device control",
+        "sk": "Príkaz pozastaviť z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Pause requested (device control)",
+        "sk": "Pozastavenie vyžiadané (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Pause requested (device control)",
+        "sk": "Pozastavenie vyžiadané (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_pause_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Pause command from Homey Flow",
+        "sk": "Príkaz pozastaviť z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Pause requested (Homey Flow)",
+        "sk": "Pozastavenie vyžiadané (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Pause requested (Homey Flow)",
+        "sk": "Pozastavenie vyžiadané (Homey Flow)"
+      }
+    },
+    "mammotion_command_resume": {
+      "type": "boolean",
+      "title": {
+        "en": "Resume command",
+        "sk": "Príkaz pokračovať"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Resume requested from Homey",
+        "sk": "Pokračovanie vyžiadané z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Resume requested from Homey",
+        "sk": "Pokračovanie vyžiadané z Homey"
+      }
+    },
+    "mammotion_command_resume_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Resume command from device control",
+        "sk": "Príkaz pokračovať z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Resume requested (device control)",
+        "sk": "Pokračovanie vyžiadané (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Resume requested (device control)",
+        "sk": "Pokračovanie vyžiadané (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_resume_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Resume command from Homey Flow",
+        "sk": "Príkaz pokračovať z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Resume requested (Homey Flow)",
+        "sk": "Pokračovanie vyžiadané (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Resume requested (Homey Flow)",
+        "sk": "Pokračovanie vyžiadané (Homey Flow)"
+      }
+    },
+    "mammotion_command_schedule": {
+      "type": "boolean",
+      "title": {
+        "en": "Schedule command",
+        "sk": "Príkaz plánu"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mammotion schedule requested from Homey",
+        "sk": "Plán Mammotion vyžiadaný z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Mammotion schedule requested from Homey",
+        "sk": "Plán Mammotion vyžiadaný z Homey"
+      }
+    },
+    "mammotion_command_schedule_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Schedule command from device control",
+        "sk": "Príkaz plánu z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mammotion schedule requested (device control)",
+        "sk": "Plán Mammotion vyžiadaný (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mammotion schedule requested (device control)",
+        "sk": "Plán Mammotion vyžiadaný (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_schedule_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Schedule command from Homey Flow",
+        "sk": "Príkaz plánu z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Mammotion schedule requested (Homey Flow)",
+        "sk": "Plán Mammotion vyžiadaný (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Mammotion schedule requested (Homey Flow)",
+        "sk": "Plán Mammotion vyžiadaný (Homey Flow)"
+      }
+    },
+    "mammotion_command_start": {
+      "type": "boolean",
+      "title": {
+        "en": "Start command",
+        "sk": "Príkaz spustiť"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Start mowing requested from Homey",
+        "sk": "Spustenie kosenia vyžiadané z Homey"
+      },
+      "insightsTitleFalse": {
+        "en": "Start mowing requested from Homey",
+        "sk": "Spustenie kosenia vyžiadané z Homey"
+      }
+    },
+    "mammotion_command_start_homey_control": {
+      "type": "boolean",
+      "title": {
+        "en": "Start command from device control",
+        "sk": "Príkaz spustiť z ovládania zariadenia"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Start mowing requested (device control)",
+        "sk": "Spustenie kosenia vyžiadané (ovládanie zariadenia)"
+      },
+      "insightsTitleFalse": {
+        "en": "Start mowing requested (device control)",
+        "sk": "Spustenie kosenia vyžiadané (ovládanie zariadenia)"
+      }
+    },
+    "mammotion_command_start_homey_flow": {
+      "type": "boolean",
+      "title": {
+        "en": "Start command from Homey Flow",
+        "sk": "Príkaz spustiť z Homey Flow"
+      },
+      "getable": true,
+      "setable": false,
+      "uiComponent": null,
+      "insights": true,
+      "insightsTitleTrue": {
+        "en": "Start mowing requested (Homey Flow)",
+        "sk": "Spustenie kosenia vyžiadané (Homey Flow)"
+      },
+      "insightsTitleFalse": {
+        "en": "Start mowing requested (Homey Flow)",
+        "sk": "Spustenie kosenia vyžiadané (Homey Flow)"
+      }
+    },
+    "mammotion_connection": {
+      "type": "enum",
+      "title": {
+        "en": "Status connection",
+        "sk": "Spojenie stavov"
+      },
+      "icon": "/assets/status-connection.svg",
+      "values": [
+        {
+          "id": "waiting",
+          "title": {
+            "en": "Waiting for mower",
+            "sk": "Čaká na kosačku"
+          }
+        },
+        {
+          "id": "connected",
+          "title": {
+            "en": "Connected",
+            "sk": "Pripojená"
+          }
+        },
+        {
+          "id": "stale",
+          "title": {
+            "en": "No recent status",
+            "sk": "Chýba aktuálny stav"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_current_zone": {
+      "type": "string",
+      "title": {
+        "en": "Current mowing zone",
+        "sk": "Aktuálna zóna kosenia"
+      },
+      "icon": "/assets/status-zone.svg",
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
+    "mammotion_cutter_rpm": {
+      "type": "number",
+      "title": {
+        "en": "Cutter speed",
+        "sk": "Otáčky nožov"
+      },
+      "icon": "/assets/status-blade.svg",
+      "units": "rpm",
+      "min": 0,
+      "max": 10000,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_dock": {
+      "type": "boolean",
+      "title": {
+        "en": "Return to dock",
+        "sk": "Vrátiť do stanice"
+      },
+      "icon": "/assets/action-dock.svg",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "insights": false
+    },
+    "mammotion_error_code": {
+      "type": "number",
+      "title": {
+        "en": "Mower error code",
+        "sk": "Kód chyby kosačky"
+      },
+      "icon": "/assets/status-warning.svg",
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_firmware": {
+      "type": "string",
+      "title": {
+        "en": "Firmware",
+        "sk": "Firmvér"
+      },
+      "icon": "/assets/status-chip.svg",
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
+    "mammotion_last_command": {
+      "type": "string",
+      "title": {
+        "en": "Last Homey command",
+        "sk": "Posledný príkaz z Homey"
+      },
+      "icon": "/assets/status-command.svg",
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
+    "mammotion_last_update": {
+      "type": "string",
+      "title": {
+        "en": "Last mower status",
+        "sk": "Posledný stav kosačky"
+      },
+      "icon": "/assets/status-history.svg",
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": false
+    },
+    "mammotion_pause": {
+      "type": "boolean",
+      "title": {
+        "en": "Pause mowing",
+        "sk": "Pozastaviť kosenie"
+      },
+      "icon": "/assets/action-pause.svg",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "insights": false
+    },
+    "mammotion_progress": {
+      "type": "number",
+      "title": {
+        "en": "Mowing progress",
+        "sk": "Priebeh kosenia"
+      },
+      "icon": "/assets/status-progress.svg",
+      "units": "%",
+      "min": 0,
+      "max": 100,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_resume": {
+      "type": "boolean",
+      "title": {
+        "en": "Resume mowing",
+        "sk": "Pokračovať v kosení"
+      },
+      "icon": "/assets/action-resume.svg",
+      "getable": false,
+      "setable": true,
+      "uiComponent": "button",
+      "insights": false
+    },
+    "mammotion_rtk_satellites": {
+      "type": "number",
+      "title": {
+        "en": "RTK satellites",
+        "sk": "RTK satelity"
+      },
+      "icon": "/assets/status-satellite.svg",
+      "min": 0,
+      "max": 100,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_rtk_status": {
+      "type": "enum",
+      "title": {
+        "en": "Positioning",
+        "sk": "Určenie polohy"
+      },
+      "icon": "/assets/status-position.svg",
+      "values": [
+        {
+          "id": "unknown",
+          "title": {
+            "en": "Unknown",
+            "sk": "Neznáme"
+          }
+        },
+        {
+          "id": "no_position",
+          "title": {
+            "en": "No position",
+            "sk": "Bez polohy"
+          }
+        },
+        {
+          "id": "rtk_fixed",
+          "title": {
+            "en": "RTK fixed",
+            "sk": "RTK fixná poloha"
+          }
+        },
+        {
+          "id": "rtk_vision",
+          "title": {
+            "en": "RTK with vision",
+            "sk": "RTK s kamerami"
+          }
+        },
+        {
+          "id": "vision",
+          "title": {
+            "en": "Vision positioning",
+            "sk": "Poloha podľa kamier"
+          }
+        },
+        {
+          "id": "degraded",
+          "title": {
+            "en": "Degraded",
+            "sk": "Zhoršená poloha"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_state": {
+      "type": "enum",
+      "title": {
+        "en": "Mower state",
+        "sk": "Stav kosačky"
+      },
+      "icon": "/assets/status-mower.svg",
+      "values": [
+        {
+          "id": "unknown",
+          "title": {
+            "en": "Unknown",
+            "sk": "Neznámy"
+          }
+        },
+        {
+          "id": "ready",
+          "title": {
+            "en": "Ready",
+            "sk": "Pripravená"
+          }
+        },
+        {
+          "id": "mowing",
+          "title": {
+            "en": "Mowing",
+            "sk": "Kosí"
+          }
+        },
+        {
+          "id": "returning",
+          "title": {
+            "en": "Returning to dock",
+            "sk": "Vracia sa do stanice"
+          }
+        },
+        {
+          "id": "charging",
+          "title": {
+            "en": "Charging",
+            "sk": "Nabíja sa"
+          }
+        },
+        {
+          "id": "paused",
+          "title": {
+            "en": "Paused",
+            "sk": "Pozastavená"
+          }
+        },
+        {
+          "id": "locked",
+          "title": {
+            "en": "Locked",
+            "sk": "Uzamknutá"
+          }
+        },
+        {
+          "id": "manual",
+          "title": {
+            "en": "Manual mowing",
+            "sk": "Ručné kosenie"
+          }
+        },
+        {
+          "id": "initializing",
+          "title": {
+            "en": "Initializing",
+            "sk": "Inicializuje sa"
+          }
+        },
+        {
+          "id": "updating",
+          "title": {
+            "en": "Updating",
+            "sk": "Aktualizuje sa"
+          }
+        },
+        {
+          "id": "disabled",
+          "title": {
+            "en": "Disabled",
+            "sk": "Vypnutá"
+          }
+        },
+        {
+          "id": "offline",
+          "title": {
+            "en": "Offline",
+            "sk": "Offline"
+          }
+        },
+        {
+          "id": "powered_off",
+          "title": {
+            "en": "Powered off",
+            "sk": "Vypnutá"
+          }
+        },
+        {
+          "id": "location_error",
+          "title": {
+            "en": "Positioning error",
+            "sk": "Chyba polohy"
+          }
+        },
+        {
+          "id": "editing",
+          "title": {
+            "en": "Map editing",
+            "sk": "Úprava mapy"
+          }
+        },
+        {
+          "id": "error",
+          "title": {
+            "en": "Error",
+            "sk": "Chyba"
+          }
+        }
+      ],
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_total_distance": {
+      "type": "number",
+      "title": {
+        "en": "Lifetime distance",
+        "sk": "Celková prejdená vzdialenosť"
+      },
+      "icon": "/assets/status-route.svg",
+      "units": "km",
+      "min": 0,
+      "decimals": 2,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_total_work_time": {
+      "type": "number",
+      "title": {
+        "en": "Lifetime work time",
+        "sk": "Celkový čas práce"
+      },
+      "icon": "/assets/status-clock.svg",
+      "units": "h",
+      "min": 0,
+      "decimals": 1,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    },
+    "mammotion_wifi_rssi": {
+      "type": "number",
+      "title": {
+        "en": "Mower Wi-Fi signal",
+        "sk": "Wi-Fi signál kosačky"
+      },
+      "icon": "/assets/status-wifi.svg",
+      "units": "dBm",
+      "min": -120,
+      "max": 0,
+      "decimals": 0,
+      "uiComponent": "sensor",
+      "getable": true,
+      "setable": false,
+      "insights": true
+    }
+  }
+}

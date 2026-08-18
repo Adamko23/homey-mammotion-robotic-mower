@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Dock command from Homey Flow", "sk": "Príkaz návratu z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Return to dock requested (Homey Flow)", "sk": "Návrat do stanice vyžiadaný (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Return to dock requested (Homey Flow)", "sk": "Návrat do stanice vyžiadaný (Homey Flow)" }
+}

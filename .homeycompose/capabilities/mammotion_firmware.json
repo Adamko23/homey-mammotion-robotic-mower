@@ -1,0 +1,9 @@
+{
+  "type": "string",
+  "title": { "en": "Firmware", "sk": "Firmvér" },
+  "icon": "/assets/status-chip.svg",
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

@@ -1,0 +1,12 @@
+{
+  "type": "number",
+  "title": { "en": "Blade work time", "sk": "Čas práce nožov" },
+  "icon": "/assets/status-blade-time.svg",
+  "units": "h",
+  "min": 0,
+  "decimals": 1,
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": true
+}

@@ -1,0 +1,9 @@
+{
+  "type": "boolean",
+  "title": { "en": "Pause mowing", "sk": "Pozastaviť kosenie" },
+  "icon": "/assets/action-pause.svg",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "insights": false
+}

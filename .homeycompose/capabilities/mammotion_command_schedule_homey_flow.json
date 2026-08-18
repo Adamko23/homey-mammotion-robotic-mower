@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Schedule command from Homey Flow", "sk": "Príkaz plánu z Homey Flow" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mammotion schedule requested (Homey Flow)", "sk": "Plán Mammotion vyžiadaný (Homey Flow)" },
+  "insightsTitleFalse": { "en": "Mammotion schedule requested (Homey Flow)", "sk": "Plán Mammotion vyžiadaný (Homey Flow)" }
+}

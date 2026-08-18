@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Schedule command from device control", "sk": "Príkaz plánu z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mammotion schedule requested (device control)", "sk": "Plán Mammotion vyžiadaný (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Mammotion schedule requested (device control)", "sk": "Plán Mammotion vyžiadaný (ovládanie zariadenia)" }
+}

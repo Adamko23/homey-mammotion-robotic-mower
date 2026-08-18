@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Start command from device control", "sk": "Príkaz spustiť z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Start mowing requested (device control)", "sk": "Spustenie kosenia vyžiadané (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Start mowing requested (device control)", "sk": "Spustenie kosenia vyžiadané (ovládanie zariadenia)" }
+}

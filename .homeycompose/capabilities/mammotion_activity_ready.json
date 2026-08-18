@@ -1,0 +1,7 @@
+{
+  "type": "boolean",
+  "title": { "en": "Mower ready", "sk": "Kosačka pripravená" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Mower ready / task ended", "sk": "Kosačka pripravená / úloha skončila" },
+  "insightsTitleFalse": { "en": "Mower ready / task ended", "sk": "Kosačka pripravená / úloha skončila" }
+}

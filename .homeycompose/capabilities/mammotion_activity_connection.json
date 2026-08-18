@@ -1,0 +1,10 @@
+{
+  "type": "boolean",
+  "title": { "en": "Mower status connection", "sk": "Spojenie so stavmi kosačky" },
+  "getable": true,
+  "setable": false,
+  "uiComponent": null,
+  "insights": true,
+  "insightsTitleTrue": { "en": "Mower status connection restored", "sk": "Spojenie so stavmi kosačky obnovené" },
+  "insightsTitleFalse": { "en": "Mower status connection lost", "sk": "Spojenie so stavmi kosačky prerušené" }
+}

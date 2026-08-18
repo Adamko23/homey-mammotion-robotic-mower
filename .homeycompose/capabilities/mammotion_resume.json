@@ -1,0 +1,9 @@
+{
+  "type": "boolean",
+  "title": { "en": "Resume mowing", "sk": "Pokračovať v kosení" },
+  "icon": "/assets/action-resume.svg",
+  "getable": false,
+  "setable": true,
+  "uiComponent": "button",
+  "insights": false
+}

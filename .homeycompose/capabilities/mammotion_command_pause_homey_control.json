@@ -1,0 +1,6 @@
+{
+  "type": "boolean", "title": { "en": "Pause command from device control", "sk": "Príkaz pozastaviť z ovládania zariadenia" },
+  "getable": true, "setable": false, "uiComponent": null, "insights": true,
+  "insightsTitleTrue": { "en": "Pause requested (device control)", "sk": "Pozastavenie vyžiadané (ovládanie zariadenia)" },
+  "insightsTitleFalse": { "en": "Pause requested (device control)", "sk": "Pozastavenie vyžiadané (ovládanie zariadenia)" }
+}
