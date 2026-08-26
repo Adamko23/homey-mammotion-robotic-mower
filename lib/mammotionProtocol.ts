@@ -48,7 +48,7 @@ export type MammotionTelemetry = {
   iotConnectionStatus?: number;
   lockState?: number;
   mowingProgressPercent?: number;
-  online: true;
+  online: boolean;
   pathHash?: string;
   receivedAt: number;
   rtkPositionLevel?: number;

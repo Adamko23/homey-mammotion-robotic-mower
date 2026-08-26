@@ -194,6 +194,11 @@ export function toRouteBorderMode(mowOrder: number): number {
   return mowOrder === 1 ? 1 : 0;
 }
 
+export function toRouteIncludedAngle(channelMode: number): number {
+  // Mammotion applies the crossing angle only to double-grid routes.
+  return channelMode === 1 ? 90 : 0;
+}
+
 function toRouteSettings(settings: MammotionStartMowingSettings): DNAngelXRouteSettings {
   return {
     areaHashes: settings.areaHashes,
@@ -214,7 +219,7 @@ function toRouteSettings(settings: MammotionStartMowingSettings): DNAngelXRouteS
     rideBoundaryDistance: 0,
     startProgress: settings.startProgress,
     towardDeg: settings.cuttingPathAngle,
-    towardIncludedAngleDeg: 0,
+    towardIncludedAngleDeg: toRouteIncludedAngle(settings.channelMode),
     towardMode: settings.cuttingPathAngleMode,
     ultraWave: settings.obstacleDetection,
   };
@@ -552,7 +557,9 @@ export default class DNAngelXMammotionMethods {
       }
     }
 
-    return telemetry;
+    return Object.keys(telemetry).some((key) => key !== "online" && key !== "receivedAt")
+      ? telemetry
+      : null;
   }
 
   parseAreaHashes(content: string, deviceKey: string): string[] {

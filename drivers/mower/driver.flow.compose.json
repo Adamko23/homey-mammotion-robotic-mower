@@ -146,13 +146,19 @@
           },
           "values": [
             {
-              "id": "2",
+              "id": "0",
               "title": {
                 "en": "Optimal"
               }
             },
             {
               "id": "1",
+              "title": {
+                "en": "North (0 deg)"
+              }
+            },
+            {
+              "id": "2",
               "title": {
                 "en": "Random"
               }

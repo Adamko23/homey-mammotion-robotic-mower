@@ -124,11 +124,13 @@ const STATE_ACTIVITY_CAPABILITY: Partial<Record<MammotionState, string>> = {
 
 function stateFromCode(code: number | undefined, errorCode: number | undefined): MammotionState {
   switch (code) {
+    case 0:
     case 1:
     case 11:
     case 22:
       return "ready";
     case 2:
+    case 12:
       return "offline";
     case 3:
       return "powered_off";
@@ -147,8 +149,9 @@ function stateFromCode(code: number | undefined, errorCode: number | undefined):
     case 17:
       return "locked";
     case 19:
-    case 39:
       return "paused";
+    case 39:
+      return "charging";
     case 20:
       return "manual";
     case 23:
@@ -467,15 +470,36 @@ class MowerDevice extends OAuth2Device {
     const previousState = typeof previousStateValue === "string"
       ? previousStateValue as MammotionState
       : "unknown";
-    const nextState = telemetry.stateCode !== undefined || (telemetry.errorCode || 0) !== 0
-      ? stateFromCode(telemetry.stateCode, telemetry.errorCode)
-      : previousState;
+    const hasStateUpdate = !telemetry.online
+      || telemetry.stateCode !== undefined
+      || (telemetry.errorCode || 0) !== 0;
+    const hasDetailUpdate = hasStateUpdate || [
+      telemetry.batteryCycles,
+      telemetry.batteryPercent,
+      telemetry.bladeHeightMm,
+      telemetry.bladeWorkTimeSeconds,
+      telemetry.chargeState,
+      telemetry.cutterRpm,
+      telemetry.firmwareVersion,
+      telemetry.mowingProgressPercent,
+      telemetry.rtkPositionLevel,
+      telemetry.rtkSatellites,
+      telemetry.totalMileageMeters,
+      telemetry.totalWorkTimeSeconds,
+      telemetry.wifiRssi,
+      telemetry.zoneHash,
+    ].some((value) => value !== undefined);
+    const nextState = !telemetry.online
+      ? "offline"
+      : hasStateUpdate
+        ? stateFromCode(telemetry.stateCode, telemetry.errorCode)
+        : previousState;
 
     this.armTelemetryStaleTimer(telemetry.receivedAt);
     await this.setCapabilitySafely("mammotion_connection", "connected");
     await this.setConnectionTimelineActivity(true);
 
-    if (nextState === "offline" || nextState === "powered_off") {
+    if (!telemetry.online || (hasStateUpdate && (nextState === "offline" || nextState === "powered_off"))) {
       await this.setUnavailable(nextState === "offline"
         ? "Mammotion reports that the mower is offline"
         : "Mammotion reports that the mower is powered off");
@@ -544,21 +568,25 @@ class MowerDevice extends OAuth2Device {
     if (telemetry.zoneHash) {
       const area = this.getStoredAreas().find((candidate) => candidate.hash === telemetry.zoneHash);
       await this.setCapabilitySafely("mammotion_current_zone", area?.name || telemetry.zoneHash);
-    } else if (!ACTIVE_STATES.has(nextState) && nextState !== "manual") {
+    } else if (hasStateUpdate && !ACTIVE_STATES.has(nextState) && nextState !== "manual") {
       await this.setCapabilitySafely("mammotion_current_zone", "—");
     }
 
-    await this.setCapabilitySafely("mammotion_state", nextState);
-    const updateParts = [
-      new Date(telemetry.receivedAt).toISOString(),
-      `${nextState} (${telemetry.stateCode ?? "-"})`,
-    ];
-    if (telemetry.batteryPercent !== undefined) {
-      updateParts.push(`${telemetry.batteryPercent}%`);
+    if (hasStateUpdate) {
+      await this.setCapabilitySafely("mammotion_state", nextState);
     }
-    await this.setCapabilitySafely("mammotion_last_update", updateParts.join(" · "));
+    if (hasDetailUpdate) {
+      const updateParts = [
+        new Date(telemetry.receivedAt).toISOString(),
+        `${nextState} (${telemetry.stateCode ?? "-"})`,
+      ];
+      if (telemetry.batteryPercent !== undefined) {
+        updateParts.push(`${telemetry.batteryPercent}%`);
+      }
+      await this.setCapabilitySafely("mammotion_last_update", updateParts.join(" · "));
+    }
 
-    if (!this.hasLoggedTelemetrySnapshot) {
+    if (hasDetailUpdate && !this.hasLoggedTelemetrySnapshot) {
       this.hasLoggedTelemetrySnapshot = true;
       this.log("Mammotion mower telemetry snapshot", {
         batteryCycles: telemetry.batteryCycles,
@@ -580,7 +608,7 @@ class MowerDevice extends OAuth2Device {
       });
     }
 
-    if (previousState !== nextState) {
+    if (hasStateUpdate && previousState !== nextState) {
       await this.recordStateTransition(previousState, nextState, telemetry);
     }
 
@@ -726,9 +754,36 @@ class MowerDevice extends OAuth2Device {
       `${timestamp} · ${title} · ${commandSourceTitle(source)}`,
     );
     await this.toggleActivityCapability(`mammotion_command_${command}_${source}`);
+    await this.applyAcceptedCommandState(command, timestamp);
     this.log("Mammotion command accepted by cloud", {
       command,
       source,
+      timestamp,
+    });
+  }
+
+  private async applyAcceptedCommandState(
+    command: "start" | "pause" | "resume" | "cancel" | "dock" | "schedule",
+    timestamp: string,
+  ): Promise<void> {
+    const stateByCommand: Record<typeof command, MammotionState> = {
+      cancel: "ready",
+      dock: "returning",
+      pause: "paused",
+      resume: "mowing",
+      schedule: "mowing",
+      start: "mowing",
+    };
+    const nextState = stateByCommand[command];
+
+    await this.setCapabilitySafely("mammotion_state", nextState);
+    await this.setCapabilitySafely(
+      "mammotion_last_update",
+      `${timestamp} · ${nextState} · command accepted, awaiting mower status`,
+    );
+    this.log("Mammotion mower state provisionally updated from accepted command", {
+      command,
+      state: nextState,
       timestamp,
     });
   }

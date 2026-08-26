@@ -3,6 +3,11 @@ import { OAuth2Client, OAuth2Driver } from "homey-oauth2app";
 
 import MammotionOAuth2Client from "../../lib/MammotionOAuth2Client";
 import type { MammotionArea, MammotionStartMowingSettings } from "../../lib/mammotionProtocol";
+import {
+  type MammotionStartMowingFlowArgs,
+  type MammotionStartMowingOptions,
+  normalizeStartMowingSettings,
+} from "../../lib/mammotionStartMowing";
 import type { MammotionDeviceInfo, MammotionDeviceRecord, MammotionShareRecord } from "../../lib/mammotionTypes";
 
 type PairListDevicesArgs = {
@@ -30,29 +35,15 @@ type AreaAutocompleteResult = {
   name: string;
 };
 
-type MowerFlowArgs = {
+type MowerFlowArgs = MammotionStartMowingFlowArgs & {
   area?: unknown;
   area_hashes?: unknown;
   area_selector?: unknown;
-  blade_height?: unknown;
-  border_laps?: unknown;
-  channel_mode?: unknown;
-  cutting_path_angle?: unknown;
-  cutting_path_angle_mode?: unknown;
   device?: MowerFlowDevice;
-  mow_order?: unknown;
-  obstacle_detection?: unknown;
-  obstacle_laps?: unknown;
   plan_id?: unknown;
-  speed?: unknown;
-  path_spacing?: unknown;
 };
 
 type MammotionPairDevice = MammotionDeviceInfo | MammotionDeviceRecord | MammotionShareRecord;
-type StartMowingOptions = {
-  cuttingPathAngleMode?: number;
-  defaultCuttingPathAngleMode?: number;
-};
 
 function getDeviceIdentifier(device: MammotionPairDevice): string {
   const id = device.iotId || ("deviceId" in device ? device.deviceId : undefined) || device.deviceName;
@@ -68,34 +59,8 @@ function getDeviceName(device: MammotionPairDevice): string {
   return device.deviceName || ("deviceId" in device ? device.deviceId : undefined) || device.iotId || "Mammotion mower";
 }
 
-function getRequiredNumber(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value;
-  }
-
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
-  }
-
-  return fallback;
-}
-
-function getRequiredInteger(value: unknown, fallback: number): number {
-  return Math.round(getRequiredNumber(value, fallback));
-}
-
 function getString(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function getClampedInteger(value: unknown, fallback: number, min: number, max: number): number {
-  const parsed = getRequiredInteger(value, fallback);
-
-  return Math.max(min, Math.min(max, parsed));
 }
 
 function isAreaHashList(value: string): boolean {
@@ -167,7 +132,7 @@ async function parseSelectedAreaHashes(args: MowerFlowArgs, device: MowerFlowDev
 async function parseStartMowingSettings(
   args: MowerFlowArgs,
   device: MowerFlowDevice,
-  options: StartMowingOptions = {},
+  options: MammotionStartMowingOptions = {},
 ): Promise<MammotionStartMowingSettings> {
   const areaHashes = await parseSelectedAreaHashes(args, device);
 
@@ -175,30 +140,16 @@ async function parseStartMowingSettings(
     throw new Error("Enter a Mammotion area name or paste one or more area hash IDs.");
   }
 
-  return {
-    areaHashes,
-    bladeHeight: getRequiredInteger(args.blade_height, 50),
-    borderLaps: getRequiredInteger(args.border_laps, 1),
-    channelMode: getRequiredInteger(args.channel_mode, 0),
-    channelWidth: getRequiredInteger(args.path_spacing, 25),
-    cuttingPathAngle: getClampedInteger(args.cutting_path_angle, 0, -180, 180),
-    cuttingPathAngleMode: options.cuttingPathAngleMode
-      ?? getClampedInteger(args.cutting_path_angle_mode, options.defaultCuttingPathAngleMode ?? 2, 0, 2),
-    mowOrder: getRequiredInteger(args.mow_order, 0),
-    obstacleDetection: getRequiredInteger(args.obstacle_detection, 0),
-    obstacleLaps: getRequiredInteger(args.obstacle_laps, 1),
-    speed: getRequiredNumber(args.speed, 0.3),
-    startProgress: 0,
-  };
+  return normalizeStartMowingSettings(args, areaHashes, options);
 }
 
 class MowerDriver extends OAuth2Driver {
   async onOAuth2Init(): Promise<void> {
     this.registerStartMowingAction("start_mowing", {
-      defaultCuttingPathAngleMode: 2,
+      defaultCuttingPathAngleMode: 0,
     });
     this.registerStartMowingAction("start_mowing_custom_angle", {
-      cuttingPathAngleMode: 0,
+      cuttingPathAngleMode: 1,
     });
 
     this.registerMowerAction("refresh_zones", async (device) => {
@@ -268,7 +219,7 @@ class MowerDriver extends OAuth2Driver {
       });
   }
 
-  private registerStartMowingAction(id: string, options: StartMowingOptions): void {
+  private registerStartMowingAction(id: string, options: MammotionStartMowingOptions): void {
     const card = this.homey.flow.getActionCard(id);
 
     card.registerArgumentAutocompleteListener(

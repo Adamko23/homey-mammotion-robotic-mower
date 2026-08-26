@@ -15,6 +15,10 @@ import {
   type MammotionTaskAction as MammotionTaskActionValue,
   type MammotionTelemetry,
 } from "./mammotionProtocol";
+import {
+  normalizeMqttPayloadData,
+  parseMqttJsonTelemetryPayload,
+} from "./mqttJsonTelemetry";
 import type {
   MammotionDeviceInfo,
   MammotionDeviceRecord,
@@ -383,6 +387,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private readonly mqttAreaHashClassificationKeyByIotId = new Map<string, string>();
   private readonly mqttSubscribedTopics = new Set<string>();
   private readonly mqttSyncByIotId = new Map<string, number>();
+  private readonly mqttSyncDecodeLogKeyByIotId = new Map<string, string>();
   private readonly mqttTargetByTopicKey = new Map<string, MammotionTopicTarget>();
   private readonly telemetryListenersByIotId = new Map<string, Set<MammotionTelemetryListener>>();
   private mqttClient?: MqttClient;
@@ -1301,9 +1306,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private getMqttSubscribeTopics(target: MammotionTopicTarget): MammotionMqttSubscribeTopic[] {
     const base = `/sys/${target.productKey}/${target.deviceName}`;
     const protoBase = `/sys/proto/${target.productKey}/${target.deviceName}`;
-    // The Mammotion JWT broker used by this mower closes the connection while
-    // subscribing to additional app/down topics. These two event wildcards
-    // include the protobuf replies needed for state and area discovery.
+    // This JWT only permits the two physical-device event namespaces. The
+    // app/down topics are rejected by closing the broker connection.
     const topics = [
       `${base}/thing/event/+/post`,
       `${protoBase}/thing/event/+/post`,
@@ -1322,8 +1326,15 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       return;
     }
 
+    const payloadText = payload.toString("utf8");
+    const payloadData = normalizeMqttPayloadData(payloadText);
+    const jsonTelemetry = parseMqttJsonTelemetryPayload(payloadText);
     const content = this.extractMqttMessageContent(topic, payload);
     const isWaitingForAreas = this.isWaitingForAreaData(target.iotId);
+
+    if (jsonTelemetry) {
+      this.emitTelemetry(target.iotId, jsonTelemetry);
+    }
 
     if (!content) {
       if (isWaitingForAreas) {
@@ -1468,7 +1479,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private extractMqttMessageContent(topic: string, payload: Buffer): string | undefined {
     const isRawProto = topic.includes("/down_raw") || topic.startsWith("/sys/proto/");
     const payloadText = payload.toString("utf8");
-    const payloadData = parseJsonObject(payloadText);
+    const payloadData = normalizeMqttPayloadData(payloadText);
 
     if (isRawProto && !payloadData) {
       return payload.toString("base64");
@@ -1478,19 +1489,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       return undefined;
     }
 
-    const params = typeof payloadData.params === "string"
-      ? parseJsonObject(payloadData.params)
-      : getObject(payloadData.params);
-    const data = typeof payloadData.data === "string"
-      ? parseJsonObject(payloadData.data)
-      : getObject(payloadData.data);
-    const normalized = {
-      ...payloadData,
-      ...(data ? { data } : {}),
-      ...(params ? { params } : {}),
-    };
-
-    return extractMqttProtoContent(normalized);
+    return extractMqttProtoContent(payloadData);
   }
 
   private rememberAreasFromContent({
@@ -2019,14 +2018,52 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       return;
     }
 
-    await this.postDeviceCommand({
+    const result = await this.postDeviceCommand({
       payload: this.dnaMethods.buildRequestIotSyncCommand({
         userAccount: this.getUserAccountSubtype(),
       }),
       target,
       type: "mqtt_sync",
     });
+    this.processMqttSyncResult(target, result);
     this.mqttSyncByIotId.set(target.iotId, Date.now());
+  }
+
+  private processMqttSyncResult(target: MammotionCommandTarget, result: string): void {
+    const jsonTelemetry = parseMqttJsonTelemetryPayload(result);
+
+    if (jsonTelemetry) {
+      this.mqttSyncDecodeLogKeyByIotId.set(target.iotId, "json-telemetry");
+      this.emitTelemetry(target.iotId, jsonTelemetry);
+      return;
+    }
+
+    const resultObject = parseJsonObject(result);
+    const content = resultObject ? extractMqttProtoContent(resultObject) : undefined;
+    const normalizedContent = content || result;
+    const telemetry = this.dnaMethods.parseTelemetry(normalizedContent);
+
+    if (telemetry) {
+      this.mqttSyncDecodeLogKeyByIotId.set(target.iotId, "telemetry");
+      this.emitTelemetry(target.iotId, telemetry);
+      return;
+    }
+
+    const jsonKeys = resultObject ? Object.keys(resultObject).sort() : [];
+    const protoFields = this.dnaMethods.summarizeProtoFields(normalizedContent);
+    const logKey = `${result.length}:${jsonKeys.join(",")}:${protoFields.join(",")}`;
+
+    if (this.mqttSyncDecodeLogKeyByIotId.get(target.iotId) === logKey) {
+      return;
+    }
+
+    this.mqttSyncDecodeLogKeyByIotId.set(target.iotId, logKey);
+    this.log("Mammotion MQTT sync response contained no mower telemetry", {
+      iotId: target.iotId,
+      jsonKeys,
+      protoFields,
+      resultChars: result.length,
+    });
   }
 
   private async postDeviceCommand({
