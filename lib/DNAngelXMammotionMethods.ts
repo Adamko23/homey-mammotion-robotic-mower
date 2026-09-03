@@ -83,6 +83,12 @@ type DNAngelXAdapterMethods = {
   tryParseNavGetHashListAck(content: string, deviceKey: string): bigint[] | null;
 };
 
+export type MammotionCommandAcknowledgements = {
+  routeConfirmed: boolean;
+  routeResult?: number;
+  taskStarted: boolean;
+};
+
 let adapterClass: { prototype: DNAngelXAdapterMethods } | undefined;
 
 function loadAdapterClass(): { prototype: DNAngelXAdapterMethods } {
@@ -560,6 +566,63 @@ export default class DNAngelXMammotionMethods {
     return Object.keys(telemetry).some((key) => key !== "online" && key !== "receivedAt")
       ? telemetry
       : null;
+  }
+
+  /**
+   * Decode acknowledgements used by the autonomous mowing start handshake.
+   *
+   * A successful cloud RPC response only confirms that Mammotion accepted the
+   * envelope. The mower separately publishes the generated-route response and
+   * the first route-progress frame over MQTT. Waiting for those messages keeps
+   * Start mowing from racing route generation.
+   */
+  parseCommandAcknowledgements(content: string): MammotionCommandAcknowledgements {
+    const acknowledgements: MammotionCommandAcknowledgements = {
+      routeConfirmed: false,
+      taskStarted: false,
+    };
+
+    if (!content || content === "ok") {
+      return acknowledgements;
+    }
+
+    let root: Buffer;
+
+    try {
+      root = Buffer.from(content, "base64");
+    } catch {
+      return acknowledgements;
+    }
+
+    const rootFields = this.methods.decodeProtoFields(root);
+    const messageAttribute = this.readNumberField(rootFields, 4, 0);
+
+    // Never accept a reflected request as the mower's acknowledgement.
+    if (messageAttribute === 1) {
+      return acknowledgements;
+    }
+
+    const navBuffers = this.readBufferFields(rootFields, 11);
+
+    for (const navBuffer of navBuffers) {
+      const navFields = this.methods.decodeProtoFields(navBuffer);
+
+      for (const routeBuffer of this.readBufferFields(navFields, 34)) {
+        const routeFields = this.methods.decodeProtoFields(routeBuffer);
+        const subCommand = this.readNumberField(routeFields, 5, 0);
+
+        if (subCommand === 0) {
+          acknowledgements.routeConfirmed = true;
+          acknowledgements.routeResult = this.readNumberField(routeFields, 16, 0);
+        }
+      }
+
+      if (this.readBufferFields(navFields, 50).length > 0) {
+        acknowledgements.taskStarted = true;
+      }
+    }
+
+    return acknowledgements;
   }
 
   parseAreaHashes(content: string, deviceKey: string): string[] {

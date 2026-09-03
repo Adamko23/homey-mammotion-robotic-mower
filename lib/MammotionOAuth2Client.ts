@@ -46,6 +46,7 @@ const MQTT_RECONNECT_MAX_MS = 60_000;
 const AREA_HASH_INFO_WAIT_MS = 8_000;
 const AREA_MQTT_WAIT_MS = 20_000;
 const AREA_NAME_RETRY_DELAYS_MS = [5_000, 10_000, 20_000, 30_000, 60_000];
+const MOWING_COMMAND_ACK_WAIT_MS = 20_000;
 const MAMMOTION_PUBLIC_KEY_PROD =
   "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApLbeSgOvnwLTWbhaBQWNnnHMtSDAi" +
   "Gz0PEDbrtd1tLYoO0hukW5PSa6eHykch0Hc6etiqEx1xziS+vNf+iOXds70I4htaYit6yRToZlQ" +
@@ -87,6 +88,11 @@ type AreaWaiter = {
 };
 type AreaHashInfoWaiter = {
   resolve(info: MammotionAreaHashInfo | undefined): void;
+  timer: NodeJS.Timeout;
+};
+type MowingCommandAck = "route_confirmed" | "task_started";
+type MowingCommandAckWaiter = {
+  resolve(confirmed: boolean): void;
   timer: NodeJS.Timeout;
 };
 type MammotionTelemetryListener = (telemetry: MammotionTelemetry) => void | Promise<void>;
@@ -389,6 +395,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private readonly mqttSyncByIotId = new Map<string, number>();
   private readonly mqttSyncDecodeLogKeyByIotId = new Map<string, string>();
   private readonly mqttTargetByTopicKey = new Map<string, MammotionTopicTarget>();
+  private readonly mowingCommandAckWaitersByKey = new Map<string, Set<MowingCommandAckWaiter>>();
   private readonly telemetryListenersByIotId = new Map<string, Set<MammotionTelemetryListener>>();
   private mqttClient?: MqttClient;
   private mqttConnectPromise?: Promise<void>;
@@ -600,7 +607,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     settings: MammotionStartMowingSettings;
     target: MammotionCommandTarget;
   }): Promise<void> {
-    await this.invokeDeviceCommand({
+    await this.invokeDeviceCommandAndWaitForMowingAck({
+      acknowledgement: "route_confirmed",
       payload: this.dnaMethods.buildRoutePlanningCommand({
         settings,
         target,
@@ -610,18 +618,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       type: "generate_route",
     });
 
-    await this.invokeDeviceCommand({
-      payload: this.dnaMethods.buildSetBladeHeightCommand({
-        bladeHeight: settings.bladeHeight,
-        userAccount: this.getUserAccountSubtype(),
-      }),
-      target,
-      type: "set_blade_height",
-    });
-
-    await wait(1_000);
-
-    await this.invokeDeviceCommand({
+    await this.invokeDeviceCommandAndWaitForMowingAck({
+      acknowledgement: "task_started",
       payload: this.dnaMethods.buildTaskControlCommand({
         action: MammotionTaskAction.Start,
         target,
@@ -1363,6 +1361,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       source: "mqtt",
     });
 
+    this.resolveMowingCommandAcknowledgements(target.iotId, content);
+
     const telemetry = this.dnaMethods.parseTelemetry(content);
 
     if (telemetry) {
@@ -1978,6 +1978,136 @@ export default class MammotionOAuth2Client extends OAuth2Client {
 
     if (!waiters.size) {
       this.areaWaitersByIotId.delete(iotId);
+    }
+  }
+
+  private getMowingCommandAckKey(iotId: string, acknowledgement: MowingCommandAck): string {
+    return `${iotId}:${acknowledgement}`;
+  }
+
+  private createMowingCommandAckWaiter({
+    acknowledgement,
+    iotId,
+  }: {
+    acknowledgement: MowingCommandAck;
+    iotId: string;
+  }): {
+    cancel(): void;
+    promise: Promise<boolean>;
+  } {
+    const key = this.getMowingCommandAckKey(iotId, acknowledgement);
+    let waiter: MowingCommandAckWaiter;
+    const promise = new Promise<boolean>((resolve) => {
+      waiter = {
+        resolve,
+        timer: setTimeout(() => {
+          this.removeMowingCommandAckWaiter(key, waiter);
+          resolve(false);
+        }, MOWING_COMMAND_ACK_WAIT_MS),
+      };
+      const waiters = this.mowingCommandAckWaitersByKey.get(key) || new Set<MowingCommandAckWaiter>();
+
+      waiters.add(waiter);
+      this.mowingCommandAckWaitersByKey.set(key, waiters);
+    });
+
+    return {
+      cancel: () => {
+        this.removeMowingCommandAckWaiter(key, waiter);
+        clearTimeout(waiter.timer);
+        waiter.resolve(false);
+      },
+      promise,
+    };
+  }
+
+  private removeMowingCommandAckWaiter(key: string, waiter: MowingCommandAckWaiter): void {
+    const waiters = this.mowingCommandAckWaitersByKey.get(key);
+
+    if (!waiters) {
+      return;
+    }
+
+    waiters.delete(waiter);
+
+    if (!waiters.size) {
+      this.mowingCommandAckWaitersByKey.delete(key);
+    }
+  }
+
+  private resolveMowingCommandAcknowledgements(iotId: string, content: string): void {
+    const acknowledgements = this.dnaMethods.parseCommandAcknowledgements(content);
+
+    if (acknowledgements.routeConfirmed) {
+      const key = this.getMowingCommandAckKey(iotId, "route_confirmed");
+      const confirmed = acknowledgements.routeResult === 0;
+
+      this.resolveMowingCommandAckWaiters(key, confirmed);
+    }
+
+    if (acknowledgements.taskStarted) {
+      this.resolveMowingCommandAckWaiters(
+        this.getMowingCommandAckKey(iotId, "task_started"),
+        true,
+      );
+    }
+  }
+
+  private resolveMowingCommandAckWaiters(key: string, confirmed: boolean): void {
+    const waiters = this.mowingCommandAckWaitersByKey.get(key);
+
+    if (!waiters) {
+      return;
+    }
+
+    this.mowingCommandAckWaitersByKey.delete(key);
+
+    for (const waiter of waiters) {
+      clearTimeout(waiter.timer);
+      waiter.resolve(confirmed);
+    }
+  }
+
+  private async invokeDeviceCommandAndWaitForMowingAck({
+    acknowledgement,
+    payload,
+    target,
+    type,
+  }: {
+    acknowledgement: MowingCommandAck;
+    payload: Buffer;
+    target: MammotionCommandTarget;
+    type: string;
+  }): Promise<void> {
+    await this.ensureMqttForTarget(target);
+    await this.syncMqttTransport(target);
+
+    const waiter = this.createMowingCommandAckWaiter({
+      acknowledgement,
+      iotId: target.iotId,
+    });
+
+    try {
+      const result = await this.postDeviceCommand({ payload, target, type });
+
+      this.resolveMowingCommandAcknowledgements(target.iotId, result);
+
+      if (!await waiter.promise) {
+        throw new OAuth2Error(
+          acknowledgement === "route_confirmed"
+            ? "Mower did not confirm the generated mowing route"
+            : "Mower did not confirm that mowing started",
+        );
+      }
+
+      this.log("Mammotion mowing command confirmed", {
+        acknowledgement,
+        iotId: target.iotId,
+        type,
+      });
+    } catch (error) {
+      waiter.cancel();
+      throw error;
     }
   }
 
