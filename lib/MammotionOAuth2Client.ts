@@ -2146,7 +2146,9 @@ export default class MammotionOAuth2Client extends OAuth2Client {
         if (!acknowledgements.schedulePlanId || acknowledgements.schedulePlanId !== waiter.expectedPlanId) continue;
         this.removeMowingCommandAckWaiter(key, waiter);
         clearTimeout(waiter.timer);
-        const confirmed = acknowledgements.scheduleResult === 0;
+        // NAV53 plan execution reports success as 1 (unlike NAV34/NAV57,
+        // which use 0). Verified on LUBA 2 and mammotion-mqtt's plan ACK path.
+        const confirmed = acknowledgements.scheduleResult === 1;
         waiter.resolve({
           confirmed,
           ...(!confirmed ? { reason: `Mower rejected saved task (code ${acknowledgements.scheduleResult})` } : {}),

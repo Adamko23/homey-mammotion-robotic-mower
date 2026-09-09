@@ -21,7 +21,8 @@ const settings = { areaHashes: [123n], bladeHeight: 45, borderLaps: 2, channelMo
   cuttingPathAngle: 0, cuttingPathAngleMode: 2, mowOrder: 0, obstacleDetection: 0, obstacleLaps: 0, speed: 0.3, startProgress: 0 };
 const routeAck = (height = 45) => navEnvelope(34, fv(7, height));
 const taskAck = (result = 0) => navEnvelope(57, Buffer.concat([fv(1, 1), fv(2, 1), fv(3, result), fv(4, 13)]));
-const planAck = (id, result = 0) => navEnvelope(53, Buffer.concat([fv(1, 1), fb(2, Buffer.from(id)), fv(4, result)]));
+// NAV53 uses 1 for success; NAV57/task-control uses 0 instead.
+const planAck = (id, result = 1) => navEnvelope(53, Buffer.concat([fv(1, 1), fb(2, Buffer.from(id)), fv(4, result)]));
 const tickMicrotasks = () => new Promise(resolve => setImmediate(resolve));
 
 function fixture(t) {
@@ -94,6 +95,31 @@ test("saved-plan execution also accepts fresh mowing telemetry", async (t) => {
     return "ok";
   };
   await client.executeSchedule({ target, planId: "stored-task-id" });
+});
+
+test("saved-plan result 1 confirms success before mowing telemetry arrives", async (t) => {
+  const client = fixture(t), commands = [];
+  client.postDeviceCommand = async ({ type }) => {
+    commands.push(type);
+    return planAck("stored-task-id", 1);
+  };
+  await client.executeSchedule({ target, planId: "stored-task-id" });
+  client.emitTelemetry(target.iotId, { online: true, receivedAt: Date.now(), stateCode: 13 });
+  assert.deepEqual(commands, ["execute_schedule"]);
+  assert.equal(client.mowingCommandAckWaitersByKey.size, 0);
+  assert.equal(client.mowingStartsInFlight.size, 0);
+});
+
+test("saved-plan result 0 is a rejection, unlike task-control result 0", async (t) => {
+  const client = fixture(t);
+  client.postDeviceCommand = async () => planAck("stored-task-id", 0);
+  await assert.rejects(client.executeSchedule({ target, planId: "stored-task-id" }), /rejected saved task \(code 0\)/);
+});
+
+test("task-control result 1 remains a rejection, unlike saved-plan result 1", async (t) => {
+  const client = fixture(t);
+  client.postDeviceCommand = async ({ type }) => type === "generate_route" ? routeAck() : taskAck(1);
+  await assert.rejects(client.startMowing({ settings, target }), /rejected start \(code 1\)/);
 });
 
 test("a saved-plan rejection remains an error and is not retried", async (t) => {
