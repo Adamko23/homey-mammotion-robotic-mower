@@ -551,7 +551,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
 
     try {
       await this.ensureMqttForTarget(target);
-      await this.syncMqttTransport(target).catch((error: unknown) => {
+      await this.refreshTelemetry(target).catch((error: unknown) => {
         this.error("Mammotion initial telemetry sync failed", {
           iotId: target.iotId,
           message: error instanceof Error ? error.message : String(error),
@@ -580,6 +580,23 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   async refreshTelemetry(target: MammotionCommandTarget): Promise<void> {
     await this.ensureMqttForTarget(target);
     await this.syncMqttTransport(target);
+    // The regular report subscription does not include cutter RPM. Query it
+    // explicitly; unsupported/missing cutter replies must not break status sync.
+    try {
+      const result = await this.postDeviceCommand({
+        payload: this.dnaMethods.buildGetCutterStatusCommand({
+          userAccount: this.getUserAccountSubtype(),
+        }),
+        target,
+        type: "query_cutter_status",
+      });
+      this.processMqttSyncResult(target, result);
+    } catch (error) {
+      this.error("Could not query Mammotion cutter status", {
+        iotId: target.iotId,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
 
   async sendTaskControl({

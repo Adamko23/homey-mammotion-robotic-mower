@@ -77,6 +77,7 @@ type DNAngelXAdapterMethods = {
   decodeProtoFields(buffer: Buffer): Map<number, Array<Buffer | bigint>>;
   hashFrameAccumulator: Map<string, { frames: Map<number, bigint[]>; totalFrame: number }>;
   getReceiverDevice(context: DNAngelXContext): number;
+  isLubaProDevice(context: DNAngelXContext): boolean;
   isYukaDevice(context: DNAngelXContext): boolean;
   seq: number;
   tryParseAreaHashNames(content: string): Array<{ hash: bigint; name: string }> | null;
@@ -132,23 +133,16 @@ function loadAdapterClass(): { prototype: DNAngelXAdapterMethods } {
 function createAdapterMethodObject(): DNAngelXAdapterMethods {
   const klass = loadAdapterClass();
   const methods = Object.create(klass.prototype) as DNAngelXAdapterMethods;
-  const getUpstreamReceiverDevice = methods.getReceiverDevice.bind(methods);
+  const isUpstreamLubaProDevice = methods.isLubaProDevice.bind(methods);
 
   methods.hashFrameAccumulator = new Map();
   methods.seq = 0;
-  methods.getReceiverDevice = (context: DNAngelXContext): number => {
-    const upstreamReceiver = getUpstreamReceiverDevice(context);
-
-    // ioBroker.mammotion 0.0.7 only routes Luba VP/Pro product keys to the
-    // navigation controller. PyMammotion routes every Luba 2 (Luba-VS) there.
-    // A Luba 2 command sent to DEV_MAINCTL is accepted by the cloud RPC bridge,
-    // but the mower does not execute it.
-    if (isLuba2Context(context)) {
-      return 17;
-    }
-
-    return upstreamReceiver;
-  };
+  // PyMammotion's is_luba_pro includes Luba 2 (Luba-VS). ioBroker 0.0.7
+  // recognises only VP/Pro here. Both the NAV receiver and reserved[5] in
+  // NavReqCoverPath depend on this classification: Luba 2 needs tactics 8.
+  // Overriding only getReceiverDevice left its route tactics at 0.
+  methods.isLubaProDevice = (context: DNAngelXContext): boolean =>
+    isLuba2Context(context) || isUpstreamLubaProDevice(context);
 
   return methods;
 }
@@ -501,8 +495,9 @@ export default class DNAngelXMammotionMethods {
 
     const rootFields = this.methods.decodeProtoFields(root);
     const sysBuffers = this.readBufferFields(rootFields, 10);
+    const driverBuffers = this.readBufferFields(rootFields, 12);
 
-    if (!sysBuffers.length) {
+    if ((!sysBuffers.length && !driverBuffers.length) || this.readNumber(rootFields, 4) === 1) {
       return null;
     }
 
@@ -560,6 +555,19 @@ export default class DNAngelXMammotionMethods {
 
       for (const cutterBuffer of this.readBufferFields(sysFields, 67)) {
         this.parseCutterTelemetry(this.methods.decodeProtoFields(cutterBuffer), telemetry);
+      }
+    }
+
+    for (const driverBuffer of driverBuffers) {
+      const driver = this.methods.decodeProtoFields(driverBuffer);
+
+      // Current cutter mode is a speed preset, not blade on/off. The reply
+      // also carries actual RPM; proto3 omits the RPM field when it is zero.
+      for (const cutterBuffer of this.readBufferFields(driver, 14)) {
+        const cutter = this.methods.decodeProtoFields(cutterBuffer);
+        if ((this.readSignedInt32(cutter, 3) ?? 0) === 0) {
+          this.parseCutterTelemetry(cutter, telemetry);
+        }
       }
     }
 
@@ -846,8 +854,8 @@ export default class DNAngelXMammotionMethods {
     cutter: Map<number, Array<Buffer | bigint>>,
     telemetry: MammotionTelemetry,
   ): void {
-    this.assignNumber(telemetry, "cutterMode", this.readSignedInt32(cutter, 1));
-    this.assignNumber(telemetry, "cutterRpm", this.readSignedInt32(cutter, 2));
+    this.assignNumber(telemetry, "cutterMode", this.readSignedInt32(cutter, 1) ?? 0);
+    this.assignNumber(telemetry, "cutterRpm", this.readSignedInt32(cutter, 2) ?? 0);
   }
 
   private readBufferFields(
@@ -1123,6 +1131,22 @@ export default class DNAngelXMammotionMethods {
       toSession(userAccount),
       bladeHeight,
     ));
+  }
+
+  buildGetCutterStatusCommand({ userAccount }: { userAccount: number }): Buffer {
+    // LubaMsg.driver.current_cutter_mode = AppGetCutterWorkMode{}.
+    // This is a read request; no blade-control or movement field is sent.
+    return concatFields([
+      fieldVarint(1, 243),
+      fieldVarint(2, 7),
+      fieldVarint(3, 1),
+      fieldVarint(4, 1),
+      fieldVarint(5, this.methods.seq = (this.methods.seq + 1) & 255),
+      fieldVarint(6, 1),
+      fieldVarint(7, Number(toSession(userAccount).userAccount)),
+      fieldBytes(12, fieldBytes(14, Buffer.alloc(0))),
+      fieldVarint(15, Date.now()),
+    ]);
   }
 
   buildTaskControlCommand({

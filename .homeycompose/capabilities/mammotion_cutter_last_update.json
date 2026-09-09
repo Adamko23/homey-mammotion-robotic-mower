@@ -1,0 +1,9 @@
+{
+  "type": "string",
+  "title": { "en": "Last cutter report", "sk": "Posledný údaj o otáčkach nožov" },
+  "icon": "/assets/status-history.svg",
+  "uiComponent": "sensor",
+  "getable": true,
+  "setable": false,
+  "insights": false
+}

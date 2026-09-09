@@ -81,6 +81,7 @@ const STATUS_CAPABILITIES = [
   "mammotion_rtk_status",
   "mammotion_rtk_satellites",
   "mammotion_cutter_rpm",
+  "mammotion_cutter_last_update",
   "mammotion_error_code",
   "mammotion_total_distance",
   "mammotion_total_work_time",
@@ -242,6 +243,7 @@ class MowerDevice extends OAuth2Device {
   private telemetryRefreshFailures = 0;
   private telemetryRefreshTimer?: NodeJS.Timeout;
   private telemetryStaleTimer?: NodeJS.Timeout;
+  private cutterStaleTimer?: NodeJS.Timeout;
   private unsubscribeTelemetry?: () => void;
   private telemetryQueue: Promise<void> = Promise.resolve();
 
@@ -252,6 +254,8 @@ class MowerDevice extends OAuth2Device {
     await this.removeLegacyCapabilities();
     this.registerCommandCapabilityListeners();
     await this.initializeStatusCapabilities();
+    await this.setCapabilitySafely("mammotion_cutter_rpm", null);
+    await this.setCapabilitySafely("mammotion_cutter_last_update", "Waiting for cutter report");
     await this.setAvailable();
     this.unsubscribeTelemetry = await this.getMammotionClient().subscribeTelemetry({
       listener: (telemetry) => {
@@ -530,6 +534,16 @@ class MowerDevice extends OAuth2Device {
     }
     if (telemetry.cutterRpm !== undefined) {
       await this.setCapabilitySafely("mammotion_cutter_rpm", telemetry.cutterRpm);
+      const reportedAt = new Date(telemetry.receivedAt).toISOString();
+      await this.setCapabilitySafely("mammotion_cutter_last_update", reportedAt);
+      if (this.cutterStaleTimer) clearTimeout(this.cutterStaleTimer);
+      this.cutterStaleTimer = setTimeout(() => {
+        this.telemetryQueue = this.telemetryQueue.then(async () => {
+          if (this.getCapabilityValue("mammotion_cutter_last_update") !== reportedAt) return;
+          await this.setCapabilitySafely("mammotion_cutter_rpm", null);
+          await this.setCapabilitySafely("mammotion_cutter_last_update", `${reportedAt} · stale`);
+        }).catch((error: unknown) => this.error("Could not expire cutter status", error));
+      }, TELEMETRY_STALE_MS);
     }
     if (telemetry.errorCode !== undefined) {
       await this.setCapabilitySafely("mammotion_error_code", telemetry.errorCode);
@@ -806,7 +820,7 @@ class MowerDevice extends OAuth2Device {
     await this.setCapabilitySafely("mammotion_activity_connection", connected);
   }
 
-  private async setCapabilitySafely(capability: string, value: boolean | number | string): Promise<void> {
+  private async setCapabilitySafely(capability: string, value: boolean | number | string | null): Promise<void> {
     if (!this.hasCapability(capability) || this.getCapabilityValue(capability) === value) {
       return;
     }
@@ -819,6 +833,10 @@ class MowerDevice extends OAuth2Device {
   }
 
   private stopTelemetryMonitoring(): void {
+    if (this.cutterStaleTimer) {
+      clearTimeout(this.cutterStaleTimer);
+      this.cutterStaleTimer = undefined;
+    }
     if (this.telemetryStaleTimer) {
       clearTimeout(this.telemetryStaleTimer);
       this.telemetryStaleTimer = undefined;

@@ -15,6 +15,7 @@
     "mammotion_rtk_status",
     "mammotion_rtk_satellites",
     "mammotion_cutter_rpm",
+    "mammotion_cutter_last_update",
     "mammotion_error_code",
     "mammotion_total_distance",
     "mammotion_total_work_time",

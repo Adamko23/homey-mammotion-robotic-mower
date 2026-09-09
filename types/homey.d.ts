@@ -84,7 +84,7 @@ declare module "homey" {
       removeCapability(capabilityId: string): Promise<void>;
       setAvailable(): Promise<void>;
       setStoreValue(key: string, value: unknown): Promise<void>;
-      setCapabilityValue(capabilityId: string, value: boolean | number | string): Promise<void>;
+      setCapabilityValue(capabilityId: string, value: boolean | number | string | null): Promise<void>;
       setUnavailable(message?: string): Promise<void>;
     }
 
