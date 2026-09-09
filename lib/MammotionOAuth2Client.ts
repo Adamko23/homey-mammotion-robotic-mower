@@ -6,7 +6,6 @@ import mqtt, { type MqttClient } from "mqtt";
 import DNAngelXMammotionMethods from "./DNAngelXMammotionMethods";
 import MammotionOAuth2Token from "./MammotionOAuth2Token";
 import {
-  createExecuteScheduleMessage,
   MammotionTaskAction,
   type MammotionArea,
   type MammotionAreaHashInfo,
@@ -90,11 +89,22 @@ type AreaHashInfoWaiter = {
   resolve(info: MammotionAreaHashInfo | undefined): void;
   timer: NodeJS.Timeout;
 };
-type MowingCommandAck = "route_confirmed" | "task_started";
+type MowingCommandAck = "route_confirmed" | "task_started" | "schedule_started";
+type MowingCommandAckResult = {
+  confirmed: boolean;
+  reason?: string;
+  pathHash?: string;
+  bladeHeightMm?: number;
+};
 type MowingCommandAckWaiter = {
-  resolve(confirmed: boolean): void;
+  createdAt: number;
+  baselineMowing: boolean;
+  expectedPathHash?: string;
+  expectedPlanId?: string;
+  resolve(result: MowingCommandAckResult): void;
   timer: NodeJS.Timeout;
 };
+class MammotionCommandTimeoutError extends OAuth2Error {}
 type MammotionTelemetryListener = (telemetry: MammotionTelemetry) => void | Promise<void>;
 
 function getOptionalEnv(name: string): string | undefined {
@@ -238,7 +248,7 @@ function assertMammotionCommandSuccess(response: MammotionResponse<unknown>, fal
   }
 
   if (response.code === MAMMOTION_GATEWAY_TIMEOUT_CODE) {
-    throw new OAuth2Error(
+    throw new MammotionCommandTimeoutError(
       response.msg
         ? `${response.msg} (Mammotion gateway code ${response.code})`
         : "Mammotion cloud gateway timed out while sending the command",
@@ -396,6 +406,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private readonly mqttSyncDecodeLogKeyByIotId = new Map<string, string>();
   private readonly mqttTargetByTopicKey = new Map<string, MammotionTopicTarget>();
   private readonly mowingCommandAckWaitersByKey = new Map<string, Set<MowingCommandAckWaiter>>();
+  private readonly mowingStartsInFlight = new Set<string>();
+  private readonly lastMowerStateByIotId = new Map<string, { stateCode: number; receivedAt: number }>();
   private readonly telemetryListenersByIotId = new Map<string, Set<MammotionTelemetryListener>>();
   private mqttClient?: MqttClient;
   private mqttConnectPromise?: Promise<void>;
@@ -580,22 +592,23 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   async refreshTelemetry(target: MammotionCommandTarget): Promise<void> {
     await this.ensureMqttForTarget(target);
     await this.syncMqttTransport(target);
-    // The regular report subscription does not include cutter RPM. Query it
-    // explicitly; unsupported/missing cutter replies must not break status sync.
-    try {
-      const result = await this.postDeviceCommand({
-        payload: this.dnaMethods.buildGetCutterStatusCommand({
-          userAccount: this.getUserAccountSubtype(),
-        }),
-        target,
-        type: "query_cutter_status",
-      });
-      this.processMqttSyncResult(target, result);
-    } catch (error) {
-      this.error("Could not query Mammotion cutter status", {
-        iotId: target.iotId,
-        message: error instanceof Error ? error.message : String(error),
-      });
+    // Optional read-only queries: ordinary reports can omit RPM and report a
+    // different blade position from the configured cutting height of the task.
+    const userAccount = this.getUserAccountSubtype();
+    for (const [type, payload] of [
+      ["query_cutter_status", this.dnaMethods.buildGetCutterStatusCommand({ userAccount })],
+      ["query_route_settings", this.dnaMethods.buildQueryRouteCommand({ target, userAccount })],
+    ] as const) {
+      try {
+        const result = await this.postDeviceCommand({ payload, target, type });
+        this.processMqttSyncResult(target, result);
+      } catch (error) {
+        this.error("Could not query Mammotion task telemetry", {
+          iotId: target.iotId,
+          type,
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
@@ -624,26 +637,33 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     settings: MammotionStartMowingSettings;
     target: MammotionCommandTarget;
   }): Promise<void> {
-    await this.invokeDeviceCommandAndWaitForMowingAck({
-      acknowledgement: "route_confirmed",
-      payload: this.dnaMethods.buildRoutePlanningCommand({
-        settings,
+    await this.withMowingStartLock(target.iotId, async () => {
+      const route = await this.invokeDeviceCommandAndWaitForMowingAck({
+        acknowledgement: "route_confirmed",
+        payload: this.dnaMethods.buildRoutePlanningCommand({
+          settings,
+          target,
+          userAccount: this.getUserAccountSubtype(),
+        }),
         target,
-        userAccount: this.getUserAccountSubtype(),
-      }),
-      target,
-      type: "generate_route",
-    });
+        type: "generate_route",
+      });
 
-    await this.invokeDeviceCommandAndWaitForMowingAck({
-      acknowledgement: "task_started",
-      payload: this.dnaMethods.buildTaskControlCommand({
-        action: MammotionTaskAction.Start,
+      if (route.bladeHeightMm !== undefined && route.bladeHeightMm !== settings.bladeHeight) {
+        throw new OAuth2Error(`Mower confirmed a route height of ${route.bladeHeightMm} mm instead of ${settings.bladeHeight} mm; start was not sent`);
+      }
+
+      await this.invokeDeviceCommandAndWaitForMowingAck({
+        acknowledgement: "task_started",
+        expectedPathHash: route.pathHash,
+        payload: this.dnaMethods.buildTaskControlCommand({
+          action: MammotionTaskAction.Start,
+          target,
+          userAccount: this.getUserAccountSubtype(),
+        }),
         target,
-        userAccount: this.getUserAccountSubtype(),
-      }),
-      target,
-      type: "start_task",
+        type: "start_task",
+      });
     });
   }
 
@@ -660,15 +680,31 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       throw new OAuth2Error("Mammotion schedule plan id is required");
     }
 
-    await this.invokeDeviceCommand({
-      payload: createExecuteScheduleMessage({
-        planId: trimmedPlanId,
-        productKey: target.productKey,
-        userAccount: this.getUserAccountSubtype(),
-      }),
-      target,
-      type: "execute_schedule",
+    await this.withMowingStartLock(target.iotId, async () => {
+      await this.invokeDeviceCommandAndWaitForMowingAck({
+        acknowledgement: "schedule_started",
+        expectedPlanId: trimmedPlanId,
+        payload: this.dnaMethods.buildExecuteScheduleCommand({
+          planId: trimmedPlanId,
+          target,
+          userAccount: this.getUserAccountSubtype(),
+        }),
+        target,
+        type: "execute_schedule",
+      });
     });
+  }
+
+  private async withMowingStartLock(iotId: string, start: () => Promise<void>): Promise<void> {
+    if (this.mowingStartsInFlight.has(iotId)) {
+      throw new OAuth2Error("A mowing start is already in progress for this mower");
+    }
+    this.mowingStartsInFlight.add(iotId);
+    try {
+      await start();
+    } finally {
+      this.mowingStartsInFlight.delete(iotId);
+    }
   }
 
   async refreshAreas({
@@ -1044,8 +1080,8 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     });
     this.mqttClient = client;
 
-    client.on("message", (topic: string, payload: Buffer) => {
-      this.handleMqttMessage(topic, payload);
+    client.on("message", (topic: string, payload: Buffer, packet) => {
+      this.handleMqttMessage(topic, payload, packet.retain);
     });
     client.on("connect", () => {
       this.mqttReconnectAttempt = 0;
@@ -1334,7 +1370,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     }));
   }
 
-  private handleMqttMessage(topic: string, payload: Buffer): void {
+  private handleMqttMessage(topic: string, payload: Buffer, retained = false): void {
     const target = this.getMqttTargetForTopic(topic, payload);
 
     if (!target) {
@@ -1348,7 +1384,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     const isWaitingForAreas = this.isWaitingForAreaData(target.iotId);
 
     if (jsonTelemetry) {
-      this.emitTelemetry(target.iotId, jsonTelemetry);
+      this.emitTelemetry(target.iotId, jsonTelemetry, !retained);
     }
 
     if (!content) {
@@ -1378,12 +1414,12 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       source: "mqtt",
     });
 
-    this.resolveMowingCommandAcknowledgements(target.iotId, content);
+    if (!retained) this.resolveMowingCommandAcknowledgements(target.iotId, content);
 
     const telemetry = this.dnaMethods.parseTelemetry(content);
 
     if (telemetry) {
-      this.emitTelemetry(target.iotId, telemetry);
+      this.emitTelemetry(target.iotId, telemetry, !retained);
     }
 
     const hashes = this.dnaMethods.parseAreaHashes(content, target.iotId);
@@ -1405,7 +1441,27 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     }
   }
 
-  private emitTelemetry(iotId: string, telemetry: MammotionTelemetry): void {
+  private emitTelemetry(iotId: string, telemetry: MammotionTelemetry, allowConfirmation = true): void {
+    if (allowConfirmation && telemetry.online && telemetry.stateCode === 13 && !(telemetry.errorCode || 0)) {
+      for (const kind of ["task_started", "schedule_started"] as const) {
+        const key = this.getMowingCommandAckKey(iotId, kind);
+        for (const waiter of this.mowingCommandAckWaitersByKey.get(key) || []) {
+          if (telemetry.receivedAt < waiter.createdAt) continue;
+          if (waiter.expectedPathHash && telemetry.pathHash && waiter.expectedPathHash !== telemetry.pathHash) continue;
+          // A pre-existing mowing state alone cannot confirm a new start.
+          if (waiter.baselineMowing && !(waiter.expectedPathHash && telemetry.pathHash === waiter.expectedPathHash)) continue;
+          this.removeMowingCommandAckWaiter(key, waiter);
+          clearTimeout(waiter.timer);
+          waiter.resolve({ confirmed: true });
+        }
+      }
+    }
+    if (telemetry.stateCode !== undefined) {
+      const previous = this.lastMowerStateByIotId.get(iotId);
+      if (!previous || telemetry.receivedAt >= previous.receivedAt) {
+        this.lastMowerStateByIotId.set(iotId, { stateCode: telemetry.stateCode, receivedAt: telemetry.receivedAt });
+      }
+    }
     for (const listener of this.telemetryListenersByIotId.get(iotId) || []) {
       void Promise.resolve(listener(telemetry)).catch((error: unknown) => {
         this.error("Mammotion telemetry listener failed", {
@@ -2005,21 +2061,29 @@ export default class MammotionOAuth2Client extends OAuth2Client {
   private createMowingCommandAckWaiter({
     acknowledgement,
     iotId,
+    expectedPathHash,
+    expectedPlanId,
   }: {
     acknowledgement: MowingCommandAck;
     iotId: string;
+    expectedPathHash?: string;
+    expectedPlanId?: string;
   }): {
     cancel(): void;
-    promise: Promise<boolean>;
+    promise: Promise<MowingCommandAckResult>;
   } {
     const key = this.getMowingCommandAckKey(iotId, acknowledgement);
     let waiter: MowingCommandAckWaiter;
-    const promise = new Promise<boolean>((resolve) => {
+    const promise = new Promise<MowingCommandAckResult>((resolve) => {
       waiter = {
+        createdAt: Date.now(),
+        baselineMowing: this.lastMowerStateByIotId.get(iotId)?.stateCode === 13,
+        expectedPathHash,
+        expectedPlanId,
         resolve,
         timer: setTimeout(() => {
           this.removeMowingCommandAckWaiter(key, waiter);
-          resolve(false);
+          resolve({ confirmed: false });
         }, MOWING_COMMAND_ACK_WAIT_MS),
       };
       const waiters = this.mowingCommandAckWaitersByKey.get(key) || new Set<MowingCommandAckWaiter>();
@@ -2032,7 +2096,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       cancel: () => {
         this.removeMowingCommandAckWaiter(key, waiter);
         clearTimeout(waiter.timer);
-        waiter.resolve(false);
+        waiter.resolve({ confirmed: false });
       },
       promise,
     };
@@ -2059,18 +2123,39 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       const key = this.getMowingCommandAckKey(iotId, "route_confirmed");
       const confirmed = acknowledgements.routeResult === 0;
 
-      this.resolveMowingCommandAckWaiters(key, confirmed);
+      this.resolveMowingCommandAckWaiters(key, {
+        confirmed,
+        ...(!confirmed ? { reason: `Mower rejected route generation (code ${acknowledgements.routeResult})` } : {}),
+        pathHash: acknowledgements.routePathHash,
+        bladeHeightMm: acknowledgements.routeBladeHeightMm,
+      });
     }
 
-    if (acknowledgements.taskStarted) {
+    if (acknowledgements.taskStarted || acknowledgements.taskResult !== undefined) {
       this.resolveMowingCommandAckWaiters(
         this.getMowingCommandAckKey(iotId, "task_started"),
-        true,
+        {
+          confirmed: acknowledgements.taskStarted,
+          ...(!acknowledgements.taskStarted ? { reason: `Mower rejected start (code ${acknowledgements.taskResult})` } : {}),
+        },
       );
+    }
+    if (acknowledgements.scheduleResult !== undefined) {
+      const key = this.getMowingCommandAckKey(iotId, "schedule_started");
+      for (const waiter of this.mowingCommandAckWaitersByKey.get(key) || []) {
+        if (!acknowledgements.schedulePlanId || acknowledgements.schedulePlanId !== waiter.expectedPlanId) continue;
+        this.removeMowingCommandAckWaiter(key, waiter);
+        clearTimeout(waiter.timer);
+        const confirmed = acknowledgements.scheduleResult === 0;
+        waiter.resolve({
+          confirmed,
+          ...(!confirmed ? { reason: `Mower rejected saved task (code ${acknowledgements.scheduleResult})` } : {}),
+        });
+      }
     }
   }
 
-  private resolveMowingCommandAckWaiters(key: string, confirmed: boolean): void {
+  private resolveMowingCommandAckWaiters(key: string, result: MowingCommandAckResult): void {
     const waiters = this.mowingCommandAckWaitersByKey.get(key);
 
     if (!waiters) {
@@ -2081,7 +2166,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
 
     for (const waiter of waiters) {
       clearTimeout(waiter.timer);
-      waiter.resolve(confirmed);
+      waiter.resolve(result);
     }
   }
 
@@ -2090,30 +2175,44 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     payload,
     target,
     type,
+    expectedPathHash,
+    expectedPlanId,
   }: {
     acknowledgement: MowingCommandAck;
     payload: Buffer;
     target: MammotionCommandTarget;
     type: string;
-  }): Promise<void> {
+    expectedPathHash?: string;
+    expectedPlanId?: string;
+  }): Promise<MowingCommandAckResult> {
     await this.ensureMqttForTarget(target);
     await this.syncMqttTransport(target);
 
     const waiter = this.createMowingCommandAckWaiter({
       acknowledgement,
       iotId: target.iotId,
+      expectedPathHash,
+      expectedPlanId,
     });
 
     try {
-      const result = await this.postDeviceCommand({ payload, target, type });
-
-      this.resolveMowingCommandAcknowledgements(target.iotId, result);
-
-      if (!await waiter.promise) {
+      let transportError: unknown;
+      try {
+        const result = await this.postDeviceCommand({ payload, target, type });
+        this.processMqttSyncResult(target, result);
+      } catch (error) {
+        // A gateway timeout is ambiguous: the mower may already have
+        // acknowledged execution through MQTT. Never resend the command.
+        if (!(error instanceof MammotionCommandTimeoutError)) throw error;
+        transportError = error;
+      }
+      const confirmation = await waiter.promise;
+      if (!confirmation.confirmed) {
+        if (transportError && !confirmation.reason) throw transportError;
         throw new OAuth2Error(
-          acknowledgement === "route_confirmed"
+          confirmation.reason || (acknowledgement === "route_confirmed"
             ? "Mower did not confirm the generated mowing route"
-            : "Mower did not confirm that mowing started",
+            : "Start was sent but not confirmed by the mower; do not retry automatically"),
         );
       }
 
@@ -2122,6 +2221,7 @@ export default class MammotionOAuth2Client extends OAuth2Client {
         iotId: target.iotId,
         type,
       });
+      return confirmation;
     } catch (error) {
       waiter.cancel();
       throw error;
@@ -2185,9 +2285,10 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       return;
     }
 
-    const resultObject = parseJsonObject(result);
+    const resultObject = normalizeMqttPayloadData(result);
     const content = resultObject ? extractMqttProtoContent(resultObject) : undefined;
     const normalizedContent = content || result;
+    this.resolveMowingCommandAcknowledgements(target.iotId, normalizedContent);
     const telemetry = this.dnaMethods.parseTelemetry(normalizedContent);
 
     if (telemetry) {

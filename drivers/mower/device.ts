@@ -77,6 +77,7 @@ const STATUS_CAPABILITIES = [
   "mammotion_progress",
   "mammotion_current_zone",
   "mammotion_blade_height",
+  "mammotion_task_blade_height",
   "mammotion_wifi_rssi",
   "mammotion_rtk_status",
   "mammotion_rtk_satellites",
@@ -255,6 +256,7 @@ class MowerDevice extends OAuth2Device {
     this.registerCommandCapabilityListeners();
     await this.initializeStatusCapabilities();
     await this.setCapabilitySafely("mammotion_cutter_rpm", null);
+    await this.setCapabilitySafely("mammotion_task_blade_height", null);
     await this.setCapabilitySafely("mammotion_cutter_last_update", "Waiting for cutter report");
     await this.setAvailable();
     this.unsubscribeTelemetry = await this.getMammotionClient().subscribeTelemetry({
@@ -481,6 +483,7 @@ class MowerDevice extends OAuth2Device {
       telemetry.batteryCycles,
       telemetry.batteryPercent,
       telemetry.bladeHeightMm,
+      telemetry.taskBladeHeightMm,
       telemetry.bladeWorkTimeSeconds,
       telemetry.chargeState,
       telemetry.cutterRpm,
@@ -522,6 +525,9 @@ class MowerDevice extends OAuth2Device {
     }
     if (telemetry.bladeHeightMm !== undefined) {
       await this.setCapabilitySafely("mammotion_blade_height", telemetry.bladeHeightMm);
+    }
+    if (telemetry.taskBladeHeightMm !== undefined) {
+      await this.setCapabilitySafely("mammotion_task_blade_height", telemetry.taskBladeHeightMm);
     }
     if (telemetry.wifiRssi !== undefined && telemetry.wifiRssi <= 0 && telemetry.wifiRssi >= -120) {
       await this.setCapabilitySafely("mammotion_wifi_rssi", telemetry.wifiRssi);

@@ -30,4 +30,20 @@ function decode(buffer) {
   return fields;
 }
 
-module.exports = { decode };
+function varint(value) {
+  let remaining = BigInt(value);
+  const bytes = [];
+  do {
+    const byte = Number(remaining & 127n);
+    remaining >>= 7n;
+    bytes.push(byte | (remaining ? 128 : 0));
+  } while (remaining);
+  return Buffer.from(bytes);
+}
+const fieldVarint = (id, value) => Buffer.concat([varint(id * 8), varint(value)]);
+const fieldBytes = (id, value) => Buffer.concat([varint(id * 8 + 2), varint(value.length), value]);
+const navEnvelope = (field, body, attribute = 2) => Buffer.concat([
+  fieldVarint(2, 1), fieldVarint(4, attribute), fieldBytes(11, fieldBytes(field, body)),
+]).toString("base64");
+
+module.exports = { decode, fieldVarint, fieldBytes, navEnvelope };

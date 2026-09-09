@@ -24,13 +24,19 @@ test("driver cutter response decodes actual RPM independently of the speed prese
   assert.ok(telemetry.receivedAt > 0);
 });
 
-test("proto3 omitted RPM is zero, so stopped blades replace an old positive reading", () => {
-  for (const hex of ["200262027200", "200352039a0400"]) {
-    // driver.14 or sys.67 is present but empty.
+test("empty cutter blocks are not measured zero RPM", () => {
+  for (const hex of ["200262027200", "200352039a0400", "20035205ba02026200"]) {
+    // Empty driver.14, sys.67, or sys.report.12 is not an RPM reading.
+    assert.equal(parse(hex), null);
+  }
+  // A mode preset without RPM does not establish blade rotation either.
+  assert.equal(parse("2002620472020802").cutterRpm, undefined);
+});
+
+test("explicit zero RPM remains a valid measurement", () => {
+  for (const hex of ["2002620472021000", "200352059a04021000", "20035207ba020462021000"]) {
     assert.equal(parse(hex).cutterRpm, 0);
   }
-  // sys.report_data(39).cutter_work_mode_info(12) is present but empty.
-  assert.equal(parse("20035205ba02026200").cutterRpm, 0);
 });
 
 test("reflected query, failed query and unrelated telemetry cannot create zero RPM", () => {

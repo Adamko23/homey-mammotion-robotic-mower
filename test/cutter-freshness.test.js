@@ -80,3 +80,11 @@ test("device shutdown cancels pending cutter expiry", async (t) => {
   await device.telemetryQueue;
   assert.equal(values.get("mammotion_cutter_rpm"), 3036);
 });
+
+test("device displays task configuration and reported position separately", async (t) => {
+  const { report, values } = deviceFixture(t);
+  await report({ taskBladeHeightMm: 45 });
+  await report({ bladeHeightMm: 70 });
+  assert.equal(values.get("mammotion_task_blade_height"), 45);
+  assert.equal(values.get("mammotion_blade_height"), 70);
+});

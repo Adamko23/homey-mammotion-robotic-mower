@@ -3,6 +3,7 @@ import Module from "module";
 import path from "path";
 
 import {
+  createExecuteScheduleMessage,
   type MammotionArea,
   type MammotionAreaHashInfo,
   type MammotionTelemetry,
@@ -87,7 +88,12 @@ type DNAngelXAdapterMethods = {
 export type MammotionCommandAcknowledgements = {
   routeConfirmed: boolean;
   routeResult?: number;
+  routeBladeHeightMm?: number;
+  routePathHash?: string;
   taskStarted: boolean;
+  taskResult?: number;
+  schedulePlanId?: string;
+  scheduleResult?: number;
 };
 
 let adapterClass: { prototype: DNAngelXAdapterMethods } | undefined;
@@ -496,8 +502,10 @@ export default class DNAngelXMammotionMethods {
     const rootFields = this.methods.decodeProtoFields(root);
     const sysBuffers = this.readBufferFields(rootFields, 10);
     const driverBuffers = this.readBufferFields(rootFields, 12);
+    const navBuffers = this.readBufferFields(rootFields, 11);
 
-    if ((!sysBuffers.length && !driverBuffers.length) || this.readNumber(rootFields, 4) === 1) {
+    if ((!sysBuffers.length && !driverBuffers.length && !navBuffers.length)
+      || this.readNumber(rootFields, 4) === 1 || this.readNumber(rootFields, 2) === 7) {
       return null;
     }
 
@@ -561,12 +569,36 @@ export default class DNAngelXMammotionMethods {
     for (const driverBuffer of driverBuffers) {
       const driver = this.methods.decodeProtoFields(driverBuffer);
 
-      // Current cutter mode is a speed preset, not blade on/off. The reply
-      // also carries actual RPM; proto3 omits the RPM field when it is zero.
+      for (const heightBuffer of this.readBufferFields(driver, 4)) {
+        this.assignNumber(telemetry, "bladeHeightMm", this.readSignedInt32(this.methods.decodeProtoFields(heightBuffer), 1));
+      }
+      for (const heightBuffer of this.readBufferFields(driver, 11)) {
+        this.assignNumber(telemetry, "bladeHeightMm", this.readSignedInt32(this.methods.decodeProtoFields(heightBuffer), 4));
+      }
+
+      // Current cutter mode is a speed preset, not blade on/off. An empty
+      // reply does not establish RPM support or a measured zero.
       for (const cutterBuffer of this.readBufferFields(driver, 14)) {
         const cutter = this.methods.decodeProtoFields(cutterBuffer);
         if ((this.readSignedInt32(cutter, 3) ?? 0) === 0) {
           this.parseCutterTelemetry(cutter, telemetry);
+        }
+      }
+    }
+
+    for (const navBuffer of navBuffers) {
+      const nav = this.methods.decodeProtoFields(navBuffer);
+      for (const routeBuffer of this.readBufferFields(nav, 34)) {
+        const route = this.methods.decodeProtoFields(routeBuffer);
+        if ((this.readSignedInt32(route, 16) ?? 0) === 0
+          && [0, 2, 3].includes(this.readSignedInt32(route, 5) ?? 0)) {
+          this.assignNumber(telemetry, "taskBladeHeightMm", this.readSignedInt32(route, 7));
+        }
+      }
+      for (const ackBuffer of this.readBufferFields(nav, 57)) {
+        const ack = this.methods.decodeProtoFields(ackBuffer);
+        if ((this.readSignedInt32(ack, 3) ?? 0) === 0) {
+          this.assignNumber(telemetry, "stateCode", this.readSignedInt32(ack, 4));
         }
       }
     }
@@ -606,7 +638,7 @@ export default class DNAngelXMammotionMethods {
     const messageAttribute = this.readNumberField(rootFields, 4, 0);
 
     // Never accept a reflected request as the mower's acknowledgement.
-    if (messageAttribute === 1) {
+    if (messageAttribute === 1 || this.readNumber(rootFields, 2) === 7) {
       return acknowledgements;
     }
 
@@ -622,11 +654,35 @@ export default class DNAngelXMammotionMethods {
         if (subCommand === 0) {
           acknowledgements.routeConfirmed = true;
           acknowledgements.routeResult = this.readNumberField(routeFields, 16, 0);
+          const height = this.readSignedInt32(routeFields, 7);
+          const pathHash = this.readBigInt(routeFields, 14);
+          if (height !== undefined) acknowledgements.routeBladeHeightMm = height;
+          if (pathHash !== undefined && pathHash > 1n) acknowledgements.routePathHash = pathHash.toString();
         }
       }
 
       if (this.readBufferFields(navFields, 50).length > 0) {
         acknowledgements.taskStarted = true;
+      }
+
+      // Modern firmware replies using NavTaskCtrlAck (57), not necessarily
+      // the route-progress (50) event. Older firmware can reply on field 37.
+      for (const ackBuffer of [
+        ...this.readBufferFields(navFields, 57),
+        ...(messageAttribute === 2 ? this.readBufferFields(navFields, 37) : []),
+      ]) {
+        const ack = this.methods.decodeProtoFields(ackBuffer);
+        if (this.readNumber(ack, 1) === 1 && this.readNumber(ack, 2) === 1) {
+          acknowledgements.taskResult = this.readSignedInt32(ack, 3) ?? 0;
+          acknowledgements.taskStarted = acknowledgements.taskResult === 0;
+        }
+      }
+      for (const scheduleBuffer of this.readBufferFields(navFields, 53)) {
+        const schedule = this.methods.decodeProtoFields(scheduleBuffer);
+        if (this.readNumber(schedule, 1) === 1) {
+          acknowledgements.schedulePlanId = this.readString(schedule, 2);
+          acknowledgements.scheduleResult = this.readSignedInt32(schedule, 4) ?? 0;
+        }
       }
     }
 
@@ -854,8 +910,11 @@ export default class DNAngelXMammotionMethods {
     cutter: Map<number, Array<Buffer | bigint>>,
     telemetry: MammotionTelemetry,
   ): void {
-    this.assignNumber(telemetry, "cutterMode", this.readSignedInt32(cutter, 1) ?? 0);
-    this.assignNumber(telemetry, "cutterRpm", this.readSignedInt32(cutter, 2) ?? 0);
+    // LUBA 2 includes an empty cutter block in ordinary reports even when
+    // it does not supply RPM. Do not turn that placeholder into a measured
+    // zero or refresh the last real RPM timestamp. Explicit zero is valid.
+    this.assignNumber(telemetry, "cutterMode", this.readSignedInt32(cutter, 1));
+    this.assignNumber(telemetry, "cutterRpm", this.readSignedInt32(cutter, 2));
   }
 
   private readBufferFields(
@@ -1131,6 +1190,37 @@ export default class DNAngelXMammotionMethods {
       toSession(userAccount),
       bladeHeight,
     ));
+  }
+
+  buildQueryRouteCommand({ target, userAccount }: {
+    target: MammotionCommandTarget;
+    userAccount: number;
+  }): Buffer {
+    // Query only: NavReqCoverPath(pver=1, sub_cmd=2). No settings or start.
+    return concatFields([
+      fieldVarint(1, 240),
+      fieldVarint(2, 7),
+      fieldVarint(3, this.methods.getReceiverDevice(toContext(target))),
+      fieldVarint(4, 1),
+      fieldVarint(5, this.methods.seq = (this.methods.seq + 1) & 255),
+      fieldVarint(6, 1),
+      fieldVarint(7, Number(toSession(userAccount).userAccount)),
+      fieldBytes(11, fieldBytes(34, concatFields([fieldVarint(1, 1), fieldVarint(5, 2)]))),
+      fieldVarint(15, Date.now()),
+    ]);
+  }
+
+  buildExecuteScheduleCommand({ planId, target, userAccount }: {
+    planId: string;
+    target: MammotionCommandTarget;
+    userAccount: number;
+  }): Buffer {
+    return createExecuteScheduleMessage({
+      planId,
+      productKey: target.productKey,
+      receiverDevice: this.methods.getReceiverDevice(toContext(target)),
+      userAccount,
+    });
   }
 
   buildGetCutterStatusCommand({ userAccount }: { userAccount: number }): Buffer {

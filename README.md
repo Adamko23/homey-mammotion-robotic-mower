@@ -30,7 +30,7 @@ The mower driver exposes these Homey Flow actions:
 - Resume mowing
 - Cancel mowing
 - Return to dock
-- Run schedule by ID
+- Run saved task by ID
 
 The device card shows direct command buttons for state-only job controls such as pause, resume, cancel, and dock. Each command has its own icon and Slovak/English label so the actions remain easy to distinguish on both mobile and web. Starting mowing needs parameters, so it is exposed as a Flow action with a form instead of a device-card button. The Flow path-order selector follows Mammotion's protocol values: `Border first` sends perimeter-first order and `Grid first` sends grid-first order.
 
@@ -38,7 +38,9 @@ The device card shows direct command buttons for state-only job controls such as
 
 The mower device displays the confirmed mower state, battery, charging state, mowing progress and zone, blade height, Wi-Fi signal, RTK quality and satellite count, cutter RPM, firmware, error code, and available maintenance counters. Status rows use purpose-specific icons instead of Homey's generic custom-capability placeholder. The app also records the last Homey command and the timestamp of the most recent mower report.
 
-Version 1.3.5 corrects the LUBA 2 route configuration to include its mowing tactics byte (`reserved[5] = 8`), in addition to routing commands to the navigation controller. A route-progress acknowledgement alone does not confirm blade rotation. The app now queries actual cutter RPM, accepts zero-RPM reports, and shows a separate last-cutter-report timestamp. RPM is cleared on app startup or after three minutes without a cutter report, so an old positive reading is not presented as a current measurement. The cutter mode field is a speed preset (standard/economic/performance), not an on/off indicator.
+LUBA 2 route configuration includes its mowing tactics byte (`reserved[5] = 8`), and commands target the navigation controller. Version 1.3.6 accepts task-control acknowledgements and fresh mowing telemetry as start confirmation, in addition to route-progress events. A confirmed MQTT start can resolve an ambiguous cloud gateway timeout without retransmitting the start; explicit rejections and authentication errors remain errors. Concurrent starts for the same mower are blocked while a start is pending.
+
+A start acknowledgement does not confirm blade rotation. The app queries cutter RPM and shows a separate last-cutter-report timestamp, but an empty cutter block is **not** a measured zero. Only explicitly supplied RPM values update the measurement. RPM is cleared on app startup or after three minutes without a measurement. The cutter mode field is a speed preset (standard/economic/performance), not an on/off indicator. `Task cutting height` shows the mower's reported route setting separately from `Reported blade height`; neither is independent physical confirmation of blade position or rotation.
 
 Confirmed state transitions and accepted Homey commands are written to the device Timeline. Command entries explicitly distinguish a press in the Homey device controls from a Homey Flow action. This deliberately distinguishes a command accepted by Mammotion's cloud from a state later confirmed by the mower. Flow triggers are available for every state change, mowing start, pause, return to dock, and mowing end.
 
@@ -46,7 +48,11 @@ The app requests a fresh status every minute while the mower is in a safe operat
 
 Commands are sent through Mammotion's cloud MQTT RPC bridge using Mammotion protobuf messages modelled after PyMammotion and ioBroker's Mammotion adapter. The app does not use Aliyun/AEP bootstrap or Aliyun command fallback. Luba 2 commands are routed to the mower's navigation controller (`DEV_NAVIGATION`), while Luba 1 keeps the main-controller route. `Start mowing` requests Mammotion area names and hash IDs through the RPC bridge and exposes them as a Homey Flow autocomplete. The app maintains a JWT MQTT receive connection and refreshes its broker credentials when the connection drops.
 
-`Run schedule by ID` currently starts an already existing Mammotion schedule by `planId`. Creating, editing, or automatically listing schedules is not implemented yet because it requires synchronizing mower plans and map zones from the device before sending `NavPlanJobSet` payloads.
+### Starting an existing Mammotion task
+
+Use `Run saved task by ID` to send the one-shot execution command for an existing task using its `planId` (not its displayed name). Zones, cutting height, speed, path order, and other mowing settings stay in the Mammotion task. Homey does not regenerate a route, edit the task, or enable its automatic schedule. The task's automatic schedule can therefore stay disabled while a Homey Flow decides when to run it. If you delete and recreate the task in Mammotion, update its ID in the Flow.
+
+The action waits for confirmation for the selected plan, or fresh mowing telemetry when the mower was not already mowing. An unconfirmed response is not a safe reason to retry automatically: the mower may already be executing it. In a scheduled Flow, reserve any daily-run guard **before** the command. Creating, editing, or automatically listing saved tasks in Homey is not implemented yet. The command layout is covered by protocol tests; end-to-end execution still depends on the mower firmware and must be checked on the intended device.
 
 This app uses unofficial Mammotion API behaviour and should be treated as experimental.
 

@@ -1,6 +1,6 @@
 {
   "type": "number",
-  "title": { "en": "Reported blade height", "sk": "Hlásená výška noža" },
+  "title": { "en": "Task cutting height", "sk": "Výška kosenia v úlohe" },
   "icon": "/assets/status-blade-height.svg",
   "units": "mm",
   "min": 0,

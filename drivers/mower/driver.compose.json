@@ -11,6 +11,7 @@
     "mammotion_progress",
     "mammotion_current_zone",
     "mammotion_blade_height",
+    "mammotion_task_blade_height",
     "mammotion_wifi_rssi",
     "mammotion_rtk_status",
     "mammotion_rtk_satellites",

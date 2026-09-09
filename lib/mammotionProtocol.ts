@@ -39,6 +39,7 @@ export type MammotionTelemetry = {
   batteryCycles?: number;
   batteryPercent?: number;
   bladeHeightMm?: number;
+  taskBladeHeightMm?: number;
   bladeWorkTimeSeconds?: number;
   chargeState?: number;
   cutterMode?: number;
@@ -182,10 +183,12 @@ function getUserAccountSubtype(userAccount?: number): number {
 export function createExecuteScheduleMessage({
   planId,
   productKey,
+  receiverDevice,
   userAccount,
 }: {
   planId: string;
   productKey?: string;
+  receiverDevice?: number;
   userAccount?: number;
 }): Buffer {
   const planTaskExecute = concatFields([
@@ -194,5 +197,5 @@ export function createExecuteScheduleMessage({
   ]);
   const nav = fieldBytes(53, planTaskExecute);
 
-  return createNavigationEnvelope({ nav, productKey, userAccount });
+  return createNavigationEnvelope({ nav, productKey, receiverDevice, userAccount });
 }

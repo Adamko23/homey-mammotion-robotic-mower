@@ -564,23 +564,28 @@
     {
       "id": "run_schedule",
       "title": {
-        "en": "Run schedule by ID"
+        "en": "Run saved task by ID",
+        "sk": "Spustiť uloženú úlohu podľa ID"
       },
       "hint": {
-        "en": "Advanced: requires a Mammotion schedule plan ID. Automatic schedule discovery is not implemented yet."
+        "en": "Starts an existing Mammotion task once, using its saved settings, without enabling its automatic schedule. Requires its plan ID, not its name.",
+        "sk": "Jednorazovo spustí existujúcu úlohu Mammotion s uloženými nastaveniami bez zapnutia jej automatického plánu. Zadajte ID úlohy, nie jej názov."
       },
       "titleFormatted": {
-        "en": "Run schedule [[plan_id]]"
+        "en": "Run saved task [[plan_id]]",
+        "sk": "Spustiť uloženú úlohu [[plan_id]]"
       },
       "args": [
         {
           "type": "text",
           "name": "plan_id",
           "title": {
-            "en": "Plan ID"
+            "en": "Plan ID",
+            "sk": "ID úlohy"
           },
           "placeholder": {
-            "en": "Mammotion schedule plan ID"
+            "en": "Mammotion task plan ID",
+            "sk": "ID uloženej úlohy Mammotion"
           }
         }
       ]
