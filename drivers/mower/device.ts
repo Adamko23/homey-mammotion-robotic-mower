@@ -1,6 +1,7 @@
 import { OAuth2Device } from "homey-oauth2app";
 
 import MammotionOAuth2Client from "../../lib/MammotionOAuth2Client";
+import { RainRadar, type RadarSnapshot } from "../../lib/rainRadar";
 import {
   MammotionTaskAction,
   type MammotionArea,
@@ -70,6 +71,9 @@ const LEGACY_CAPABILITIES = [
 ] as const;
 
 const STATUS_CAPABILITIES = [
+  "mammotion_radar_state",
+  "mammotion_radar_detail",
+  "mammotion_radar_frame",
   "mammotion_state",
   "measure_battery",
   "mammotion_connection",
@@ -240,6 +244,8 @@ function normalizeAreaName(value: string): string {
 }
 
 class MowerDevice extends OAuth2Device {
+  private rainRadar?: RainRadar;
+  private radarHistorySerialized?: string;
   private hasLoggedTelemetrySnapshot = false;
   private telemetryRefreshFailures = 0;
   private telemetryRefreshTimer?: NodeJS.Timeout;
@@ -255,6 +261,7 @@ class MowerDevice extends OAuth2Device {
     await this.removeLegacyCapabilities();
     this.registerCommandCapabilityListeners();
     await this.initializeStatusCapabilities();
+    this.startRainRadar();
     await this.setCapabilitySafely("mammotion_cutter_rpm", null);
     await this.setCapabilitySafely("mammotion_task_blade_height", null);
     await this.setCapabilitySafely("mammotion_cutter_last_update", "Waiting for cutter report");
@@ -303,6 +310,52 @@ class MowerDevice extends OAuth2Device {
   async onOAuth2Deleted(): Promise<void> {
     this.stopTelemetryMonitoring();
     this.log("Mammotion mower deleted", this.getData());
+  }
+
+  async onSettings({ newSettings, changedKeys }: { newSettings: Record<string, unknown>; changedKeys: string[] }): Promise<void> {
+    if (changedKeys.some((key) => key.startsWith("radar_"))) this.startRainRadar(newSettings);
+  }
+
+  radarSnapshot(): RadarSnapshot {
+    return this.rainRadar?.snapshot() ?? { state: "unknown", detail: "Radar not initialized" };
+  }
+
+  private startRainRadar(settings?: Record<string, unknown>): void {
+    this.rainRadar?.stop();
+    const setting = (key: string): unknown => settings && key in settings ? settings[key] : this.getSetting(key);
+    const numeric = (key: string, fallback: number, min: number, max: number): number => {
+      const value = Number(setting(key) ?? fallback);
+      return Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+    };
+    const radar = new RainRadar({
+      config: {
+        enabled: setting("radar_enabled") === true,
+        threshold: numeric("radar_threshold", 15, 10, 35),
+        dryingMinutes: numeric("radar_drying_minutes", 120, 30, 360),
+      },
+      location: () => ({ latitude: this.homey.geolocation.getLatitude(), longitude: this.homey.geolocation.getLongitude() }),
+      stored: this.getStore().rainRadarHistory,
+      error: (error) => this.error("Rain radar", error instanceof Error ? error.message : String(error)),
+      publish: async (snapshot, history) => {
+        if (this.rainRadar !== radar) return;
+        const previous = this.getCapabilityValue("mammotion_radar_state");
+        const serialized = JSON.stringify(history);
+        if (this.radarHistorySerialized !== serialized) {
+          await this.setStoreValue("rainRadarHistory", history);
+          this.radarHistorySerialized = serialized;
+        }
+        await this.setCapabilitySafely("mammotion_radar_state", snapshot.state);
+        await this.setCapabilitySafely("mammotion_radar_detail", snapshot.detail
+          + (snapshot.remainingMinutes ? ` (${snapshot.remainingMinutes} min)` : ""));
+        await this.setCapabilitySafely("mammotion_radar_frame", snapshot.frameTime ? new Date(snapshot.frameTime).toISOString() : "No radar frame");
+        if (snapshot.state !== previous) {
+          this.log("Radar state changed", { previous, state: snapshot.state, detail: snapshot.detail });
+          await this.triggerDeviceFlow("radar_state_changed", { state: snapshot.state });
+        }
+      },
+    });
+    this.rainRadar = radar;
+    radar.start();
   }
 
   async startMowing(
@@ -839,6 +892,8 @@ class MowerDevice extends OAuth2Device {
   }
 
   private stopTelemetryMonitoring(): void {
+    this.rainRadar?.stop();
+    this.rainRadar = undefined;
     if (this.cutterStaleTimer) {
       clearTimeout(this.cutterStaleTimer);
       this.cutterStaleTimer = undefined;

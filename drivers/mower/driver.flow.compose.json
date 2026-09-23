@@ -1,6 +1,11 @@
 {
   "triggers": [
     {
+      "id": "radar_state_changed",
+      "title": { "en": "Rain radar state changed", "sk": "Stav dažďového radaru sa zmenil" },
+      "tokens": [{ "name": "state", "type": "string", "title": { "en": "Radar state", "sk": "Stav radaru" } }]
+    },
+    {
       "id": "mower_state_changed",
       "title": { "en": "Mower state changed", "sk": "Stav kosačky sa zmenil" },
       "tokens": [
@@ -41,6 +46,18 @@
         { "name": "state", "type": "string", "title": { "en": "End state", "sk": "Konečný stav" } },
         { "name": "battery", "type": "number", "title": { "en": "Battery", "sk": "Batéria" } }
       ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "radar_rain_detected",
+      "title": { "en": "Radar detects precipitation at home", "sk": "Radar zachytil zrážky pri dome" },
+      "hint": { "en": "Observed RainViewer radar, not a forecast. False also means unknown: use Radar ready to mow to permit mowing.", "sk": "Pozorovaný radar RainViewer, nie predpoveď. Nepravda môže znamenať aj chýbajúce dáta; na povolenie kosenia použi podmienku Radar povoľuje kosenie." }
+    },
+    {
+      "id": "radar_ready_to_mow",
+      "title": { "en": "Radar allows mowing after the dry interval", "sk": "Radar povoľuje kosenie po preschnutí" },
+      "hint": { "en": "Requires fresh radar data and the configured continuous dry interval. Unknown/stale data never permits starting or resuming.", "sk": "Vyžaduje čerstvé dáta a nastavený súvislý suchý interval. Chýbajúce alebo staré dáta nepovolia štart ani pokračovanie." }
     }
   ],
   "actions": [

@@ -9,6 +9,9 @@
     "mammotion_connection",
     "mammotion_charge_status",
     "mammotion_progress",
+    "mammotion_radar_state",
+    "mammotion_radar_detail",
+    "mammotion_radar_frame",
     "mammotion_current_zone",
     "mammotion_blade_height",
     "mammotion_task_blade_height",
@@ -90,6 +93,17 @@
     "mammotion_command_schedule_homey_control": { "preventTag": true },
     "mammotion_command_schedule_homey_flow": { "preventTag": true }
   },
+  "settings": [
+    {
+      "type": "group",
+      "label": { "en": "Rain radar (RainViewer)", "sk": "Dažďový radar (RainViewer)" },
+      "children": [
+        { "id": "radar_enabled", "type": "checkbox", "label": { "en": "Enable radar at Homey's location", "sk": "Zapnúť radar pre polohu Homey" }, "value": false, "hint": { "en": "Uses public RainViewer radar tiles. Enable and connect the radar Flow cards to pause/dock/resume. Radar alone never controls the mower.", "sk": "Používa verejné snímky RainViewer. Vo Flow prepoj radarové karty s pauzou, dockom a pokračovaním. Samotný radar neovláda kosačku." } },
+        { "id": "radar_threshold", "type": "number", "label": { "en": "Precipitation threshold (dBZ)", "sk": "Prah zrážok (dBZ)" }, "value": 15, "min": 10, "max": 35, "step": 1, "hint": { "en": "15 includes light precipitation; higher values are less sensitive. Radar is an estimate, not a garden rain sensor.", "sk": "15 zahŕňa slabé zrážky; vyššie hodnoty sú menej citlivé. Radar je odhad, nie dažďový senzor na záhrade." } },
+        { "id": "radar_drying_minutes", "type": "number", "label": { "en": "Dry interval before mowing (minutes)", "sk": "Preschnutie pred kosením (minúty)" }, "value": 120, "min": 30, "max": 360, "step": 10 }
+      ]
+    }
+  ],
   "platforms": ["local", "cloud"],
   "connectivity": ["cloud"],
   "images": {

@@ -46,6 +46,14 @@ Confirmed state transitions and accepted Homey commands are written to the devic
 
 The app requests a fresh status every minute while the mower is in a safe operating mode. A status stream with no report for three minutes is shown as stale, but an idle mower is marked unavailable only when repeated cloud refreshes fail too. The MQTT connection refreshes its short-lived credentials, restores subscriptions, and requests a fresh report after reconnecting, so the status can recover after an internet or Wi-Fi outage without restarting the app.
 
+Version 1.3.8 also renews authentication when Mammotion returns JSON `code: 401`
+inside an otherwise successful HTTP response. Concurrent requests share the token
+refresh, and each authentication-rejected request is retried at most once. Cloud
+timeouts and mower rejections are not retried by this recovery. Refresh credentials
+are retained when the server does not issue a replacement. This fixes a session
+expiry path that could leave status unavailable until the mobile app caused new
+reports; it does not hide actual offline or stale status.
+
 Commands are sent through Mammotion's cloud MQTT RPC bridge using Mammotion protobuf messages modelled after PyMammotion and ioBroker's Mammotion adapter. The app does not use Aliyun/AEP bootstrap or Aliyun command fallback. Luba 2 commands are routed to the mower's navigation controller (`DEV_NAVIGATION`), while Luba 1 keeps the main-controller route. `Start mowing` requests Mammotion area names and hash IDs through the RPC bridge and exposes them as a Homey Flow autocomplete. The app maintains a JWT MQTT receive connection and refreshes its broker credentials when the connection drops.
 
 ### Starting an existing Mammotion task
@@ -55,6 +63,47 @@ Use `Run saved task by ID` to send the one-shot execution command for an existin
 The action waits for confirmation for the selected plan, or fresh mowing telemetry when the mower was not already mowing. Version 1.3.7 correctly treats saved-plan acknowledgement `result = 1` as success; other task-control commands use `result = 0` instead. An unconfirmed response is not a safe reason to retry automatically: the mower may already be executing it. In a scheduled Flow, reserve any daily-run guard **before** the command. Creating, editing, or automatically listing saved tasks in Homey is not implemented yet. The command layout is covered by protocol tests; end-to-end execution still depends on the mower firmware and must be checked on the intended device.
 
 This app uses unofficial Mammotion API behaviour and should be treated as experimental.
+
+### Optional observed rain radar (1.3.9)
+
+Enable **Rain radar (RainViewer)** in the mower's device settings. The app uses the
+location configured in Homey, checks radar coverage, and samples that location's
+pixel from RainViewer's observed radar frames. It does not use the hourly rain
+forecast, humidity, a radius around the garden, or Mammotion's onboard rain sensor.
+The default precipitation threshold is 15 dBZ; it is adjustable, not a precise
+measurement of rainfall at ground level. The default dry interval is 120 minutes.
+
+The mower shows radar state, an explanation, and the frame timestamp (UTC). Flow
+cards **Radar detects precipitation at home**, **Radar allows mowing after the dry
+interval**, and **Rain radar state changed** are available. A false rain condition
+can also mean missing data: never invert that condition to authorize mowing. Use
+the separate dry-interval condition for starting/resuming. The radar component
+itself sends no mower commands; connect these conditions to the desired Flow.
+
+For a daily mowing Flow, check once per minute between 11:00 and 17:00, claim a
+daily-start flag before executing the saved task, and retain existing temperature
+limits. On radar rain, pause and return to dock; resume the unfinished task only
+after a continuous dry interval. At 17:00 perform the last eligible start/resume,
+or cancel a rain-paused unfinished task if it still cannot resume. Do not cancel
+an actively mowing task just because it is 17:00. Track manual mowing starts too,
+so the daily flag also prevents a second automated task that day.
+
+Radar polling runs in Homey, with a five-minute manifest cache and ten-minute
+observed frames. Dry history persists across app restarts. Missing observations
+do not count as dry minutes; a frame older than 20 minutes is unknown. Failed
+checks block a new start/resume but must not be connected to a rain-stop action.
+Existing fresh history avoids an unnecessary two-hour wait on every restart.
+
+Radar is an estimate with spatial/temporal limitations: it can miss very local
+rain, include echoes not reaching the ground, or lag behind current conditions.
+The static coverage mask does not prove every underlying station is currently
+operational. Dry radar also cannot measure lawn moisture, irrigation or dew.
+This is best-effort automation, not a guaranteed garden rain detector.
+
+Radar data and palette: [RainViewer](https://www.rainviewer.com/),
+[API documentation](https://www.rainviewer.com/api/weather-maps-api.html).
+For manual comparison open `https://www.rainviewer.com/map.html?loc=LAT,LON,10`
+with your Homey latitude/longitude. No personal location is embedded in this repo.
 
 ## Local setup
 
@@ -85,6 +134,14 @@ Never commit `env.json`, Homey userdata exports, account credentials, access tok
 ## Privacy and limitations
 
 Login, mower discovery, commands, and telemetry use Mammotion's cloud services. Account credentials are submitted only to Mammotion's authentication service through the Homey OAuth2 client. Homey stores the resulting OAuth2 session and device metadata in its local app storage.
+
+Optional radar requires Homey's geolocation permission and is disabled by default.
+When enabled, Homey downloads public map tiles from RainViewer. Tile coordinates
+reveal the requested broad map area to that service; exact home coordinates are
+used only locally to choose a pixel. Recent point observations are stored in the
+device's local Homey storage. A manually opened location-specific map URL does
+send its included coordinates to RainViewer. Radar does not send Mammotion account
+credentials, device IDs, or mower telemetry to RainViewer.
 
 The Mammotion API is unofficial. Authentication, MQTT topics, protobuf payloads, or command semantics can change without notice. A command accepted by the cloud is recorded separately from a mower state later confirmed by telemetry.
 

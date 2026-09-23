@@ -28,6 +28,23 @@ declare module "homey-oauth2app" {
     };
   }
 
+  export type OAuth2Request = {
+    method: string;
+    path: string;
+    query?: object;
+    json?: object;
+    body?: unknown;
+    headers?: Record<string, string>;
+  };
+
+  export type OAuth2RequestResponseArgs = {
+    req: OAuth2Request;
+    url: string;
+    opts: { headers: Record<string, string> };
+    response: { ok: boolean; status: number };
+    didRefreshToken: boolean;
+  };
+
   export class OAuth2Client {
     static API_URL: string;
     static AUTHORIZATION_URL?: string | null;
@@ -54,6 +71,9 @@ declare module "homey-oauth2app" {
     }): Promise<Error>;
     onRefreshToken(): Promise<OAuth2Token>;
     onRequestHeaders(args: { headers: Record<string, string> }): Promise<Record<string, string>>;
+    onRequestResponse(args: OAuth2RequestResponseArgs): Promise<unknown>;
+    refreshToken(...args: unknown[]): Promise<unknown>;
+    protected _executeRequest(req: OAuth2Request, didRefreshToken?: boolean): Promise<unknown>;
     post(args: {
       body?: unknown;
       headers?: Record<string, string>;

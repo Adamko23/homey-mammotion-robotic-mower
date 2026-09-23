@@ -1,0 +1,4 @@
+{
+  "type": "string", "title": { "en": "Radar detail (RainViewer)", "sk": "Detail radaru (RainViewer)" },
+  "icon": "/assets/status-rain.svg", "uiComponent": "sensor", "getable": true, "setable": false, "insights": false
+}

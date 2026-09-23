@@ -23,12 +23,14 @@ declare module "homey" {
 
     type FlowManager = {
       getActionCard(id: string): FlowCard;
+      getConditionCard(id: string): FlowCard;
       getDeviceTriggerCard(id: string): DeviceTriggerCard;
     };
 
     class App {
       homey: {
         flow: FlowManager;
+        geolocation: { getLatitude(): number; getLongitude(): number };
         manifest: {
           version: string;
         };

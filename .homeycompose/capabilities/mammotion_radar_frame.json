@@ -1,0 +1,4 @@
+{
+  "type": "string", "title": { "en": "Radar frame (UTC)", "sk": "Radarová snímka (UTC)" },
+  "icon": "/assets/status-history.svg", "uiComponent": "sensor", "getable": true, "setable": false, "insights": false
+}

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import Homey from "homey";
-import { OAuth2Client, OAuth2Error, fetch } from "homey-oauth2app";
+import { OAuth2Client, OAuth2Error, fetch, type OAuth2RequestResponseArgs } from "homey-oauth2app";
 import mqtt, { type MqttClient } from "mqtt";
 
 import DNAngelXMammotionMethods from "./DNAngelXMammotionMethods";
@@ -474,11 +474,17 @@ export default class MammotionOAuth2Client extends OAuth2Client {
       signatureHeader: "Ma-Signature",
     });
 
+    if (!token.access_token) {
+      throw new OAuth2Error("Mammotion token refresh did not return an access token");
+    }
+
+    token.refresh_token ||= currentToken.refresh_token;
     token.authorization_code ||= currentToken.authorization_code;
     token.userInformation ||= currentToken.userInformation;
 
     this.setToken({ token });
     this.save();
+    this.log("Mammotion authentication refreshed");
 
     return token;
   }
@@ -2407,6 +2413,34 @@ export default class MammotionOAuth2Client extends OAuth2Client {
     assertMammotionCommandSuccess(response, "Mammotion command failed");
 
     return extractMammotionCommandResult(response.data) || "ok";
+  }
+
+  async onRequestResponse(args: OAuth2RequestResponseArgs): Promise<unknown> {
+    // Let Homey consume the response once and retain its normal HTTP 401,
+    // rate-limit and error handling. Cloning/reading a large node-fetch body
+    // before the original is consumed can stall the response stream.
+    const result = await super.onRequestResponse(args);
+    const code = getObject(result)?.code;
+    if (!args.response.ok || (code !== 401 && code !== "401")) {
+      return result;
+    }
+
+    // Mammotion also reports expired authentication as HTTP 200 + JSON 401.
+    // Reuse Homey's single-flight refresh and one-retry flag, not a command
+    // retry loop: timeouts and mower rejections must never resend a start.
+    if (args.didRefreshToken) {
+      throw new OAuth2Error("Mammotion authentication is still rejected after token refresh. Please repair the device login.");
+    }
+
+    const currentAccessToken = this.getToken()?.access_token;
+    const sentAuthorization = args.opts.headers.Authorization;
+    if (!currentAccessToken || !sentAuthorization || sentAuthorization === `Bearer ${currentAccessToken}`) {
+      this.log("Mammotion API reported expired authentication; refreshing session");
+      await this.refreshToken(args);
+    }
+    // A late rejection of the old token can arrive after another request has
+    // already refreshed it. Retry with that new token instead of refreshing again.
+    return this._executeRequest(args.req, true);
   }
 
   async onRequestHeaders({

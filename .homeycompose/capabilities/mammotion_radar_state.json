@@ -1,0 +1,12 @@
+{
+  "type": "enum", "title": { "en": "Rain radar", "sk": "Dažďový radar" },
+  "icon": "/assets/status-rain.svg",
+  "values": [
+    { "id": "disabled", "title": { "en": "Disabled", "sk": "Vypnutý" } },
+    { "id": "unknown", "title": { "en": "Data not confirmed", "sk": "Dáta nepotvrdené" } },
+    { "id": "rain", "title": { "en": "Radar precipitation", "sk": "Radarové zrážky" } },
+    { "id": "drying", "title": { "en": "Waiting to dry", "sk": "Čakanie na preschnutie" } },
+    { "id": "dry", "title": { "en": "Dry interval confirmed", "sk": "Suchý interval potvrdený" } }
+  ],
+  "uiComponent": "sensor", "getable": true, "setable": false, "insights": true
+}

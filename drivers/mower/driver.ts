@@ -2,6 +2,7 @@ import Homey from "homey";
 import { OAuth2Client, OAuth2Driver } from "homey-oauth2app";
 
 import MammotionOAuth2Client from "../../lib/MammotionOAuth2Client";
+import type { RadarSnapshot } from "../../lib/rainRadar";
 import type { MammotionArea, MammotionStartMowingSettings } from "../../lib/mammotionProtocol";
 import {
   type MammotionStartMowingFlowArgs,
@@ -15,6 +16,7 @@ type PairListDevicesArgs = {
 };
 
 type MowerFlowDevice = {
+  radarSnapshot(): RadarSnapshot;
   autocompleteArea(query: string): Promise<AreaAutocompleteResult[]>;
   cancelMowing(source?: "homey_control" | "homey_flow"): Promise<void>;
   pauseMowing(source?: "homey_control" | "homey_flow"): Promise<void>;
@@ -145,6 +147,10 @@ async function parseStartMowingSettings(
 
 class MowerDriver extends OAuth2Driver {
   async onOAuth2Init(): Promise<void> {
+    this.homey.flow.getConditionCard("radar_rain_detected").registerRunListener((args: MowerFlowArgs) =>
+      this.getFlowDevice(args).radarSnapshot().state === "rain");
+    this.homey.flow.getConditionCard("radar_ready_to_mow").registerRunListener((args: MowerFlowArgs) =>
+      this.getFlowDevice(args).radarSnapshot().state === "dry");
     this.registerStartMowingAction("start_mowing", {
       defaultCuttingPathAngleMode: 0,
     });
